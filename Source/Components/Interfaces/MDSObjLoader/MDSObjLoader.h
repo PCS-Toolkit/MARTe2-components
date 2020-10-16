@@ -30,8 +30,8 @@
 /*---------------------------------------------------------------------------*/
 /*                        Project header includes                            */
 /*---------------------------------------------------------------------------*/
-#include "ReferenceContainer.h"
 #include "ConfigurationDatabase.h"
+#include "ReferenceContainer.h"
 #include "ReferenceT.h"
 
 #include "MDSObjConnection.h"
@@ -43,7 +43,6 @@
 /*---------------------------------------------------------------------------*/
 
 namespace MARTe {
-
 
 /**
  * @brief   Loader class that loads parameters from MDSplus and makes
@@ -57,6 +56,44 @@ namespace MARTe {
  *          of a MDSObjLoader class, a Find("instanceName.paramName")
  *          will be enough to retrieve the parameter from any other
  *          object of the framework.
+ * 
+ * Configuration syntax:
+ * 
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.c}
+ * 
+ * +MDSParamLoader1 = {
+ *     Class = MDSObjLoader
+ *     
+ *     +MDSConnection1 = {
+ *         Class  = MDSObjConnection
+ *         Server = "server_name"
+ *         Tree   = "tree_name"
+ * 
+ *         +gain1 = {
+ *             Class = MDSParameter
+ *             Path  = "\\MDSPLUS::PATH.TO:NODE1"
+ *         }
+ *         +gainStruct-gain_a = {
+ *             Class = MDSParameter
+ *             Path  = "\\MDSPLUS::PATH.TO:NODE2"
+ *         }
+ *         +gainStruct-gain_b = {
+ *             Class = MDSParameter
+ *             Path  = "\\MDSPLUS::PATH.TO:NODE3"
+ *         }
+ *     }
+ * 
+ * }
+ * 
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * 
+ * @note Structured nodes are denoted by hyphens `-` since a dot cannot be used
+ *       in node names. However, every `-` in the parameter names is converted to
+ *       `.` for compatibility with the rest of the framework.
+ * 
+ * @warning Do not use `-` character for node names except for denoting structures
+ *          (see note above).
+ * 
  */
 class MDSObjLoader: public ParObjLoader {
 public:

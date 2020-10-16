@@ -24,7 +24,6 @@
 /*                         Standard header includes                          */
 /*---------------------------------------------------------------------------*/
 #include <stdio.h>
-
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
 /*---------------------------------------------------------------------------*/
@@ -32,6 +31,7 @@
 #include "MDSObjLoader.h"
 #include <mdsobjects.h>
 
+#include <StreamString.h>
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
@@ -40,13 +40,31 @@
 /*                           Method definitions                              */
 /*---------------------------------------------------------------------------*/
 
+
+/**
+ * @brief Substitute char c in string source 
+ */
+static MARTe::StreamString CharSubstitute(const MARTe::StreamString source, const MARTe::char8 orig, const MARTe::char8 rep) {
+    
+    MARTe::StreamString destination = source;
+    
+    MARTe::int32 charIdx = destination.Locate(orig);
+    
+    while (charIdx >= 0) {
+        MARTe::char8* buffer = destination.BufferReference();
+        buffer[charIdx] = rep;
+        charIdx = destination.Locate(orig);
+    }
+    
+    return destination;
+} 
+
 namespace MARTe {
 
 
 MDSObjLoader::MDSObjLoader() :
         ParObjLoader() {
-    shot=0;
-    //printf("MDSObjLoader constructor called\n");
+    shot = 0;
 }
 
 MDSObjLoader::~MDSObjLoader() {
@@ -160,10 +178,17 @@ bool MDSObjLoader::Initialise(StructuredDataI &data) {
                             
                             // Also insert an AnyObject copy of this parameter at the root level of this ReferenceContainer
                             ReferenceT<AnyObject> paramObject("AnyObject", GlobalObjectsDatabase::Instance()->GetStandardHeap());
+                            
                             if (ret && paramObject.IsValid() && refPar->IsStaticDeclared()) {
+                                
                                 ret = paramObject->Serialise(*(refPar.operator ->())); // required since we can't do Serialise(*refPar), * is not overloaded for ReferenceT
+                                
                                 if (ret) {
-                                    paramObject->SetName(refPar->GetName());
+                                    
+                                    // Substitute - with .
+                                    StreamString subString = CharSubstitute(refPar->GetName(), '-', '.');
+                                    
+                                    paramObject->SetName(subString.Buffer());
                                     Insert(paramObject);
                                 }
                             }
