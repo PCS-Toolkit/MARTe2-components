@@ -8,7 +8,7 @@
  * Licensed under the EUPL, Version 1.1 or - as soon they will be approved
  * by the European Commission - subsequent versions of the EUPL (the "Licence")
  * You may not use this work except in compliance with the Licence.
- * You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+ * You may obtain a copy of th    ClassRegistryDatabase *crdSingleton = ClassRegistryDatabase::Instance();e Licence at: http://ec.europa.eu/idabc/eupl
  *
  * @warning Unless required by applicable law or agreed to in writing,
  * software distributed under the Licence is distributed on an "AS IS"
@@ -35,6 +35,9 @@
 #include "GAM.h"
 #include "ObjectRegistryDatabase.h"
 
+//TODO Verify
+#include "ClassRegistryDatabase.h"
+
 /*---------------------------------------------------------------------------*/
 /*                            C-API interface                                */
 /*---------------------------------------------------------------------------*/
@@ -59,11 +62,21 @@ static const uint32 maxNumOfDims = 3u;
  */
 static const uint32 maxVariableNameLentgh = 40u;
 
+/**
+ * @brief Enum that specifies whether model nonvirtual buses should be
+ *        mapped into structured signals or raw uint8 byte arrays.
+ */
+enum SimulinkNonVirtualBusMode {
+    
+    StructuredBusMode,
+    ByteArrayBusMode
+};
+
 /*---------------------------------------------------------------------------*/
 /*                               SimulinkDataI                               */
 /*---------------------------------------------------------------------------*/
 
-/**
+/**    ClassRegistryDatabase *crdSingleton = ClassRegistryDatabase::Instance();
  * @brief   Class that manages informations about Simulink(R) objects retrieved
  *          from the model shared library.
  * @details This class holds revelant informations about Simulink(R) objects
@@ -84,7 +97,7 @@ public:
     
     rtwCAPI_Orientation orientation;        //!< data orientation retrieved from model .so
     
-    uint64 byteSize;                        //!< Size in bytes occupied by this data.
+    uint32 byteSize;                        //!< Size in bytes occupied by this data.
     uint16 dataTypeSize;                    //!< Size of the type of this data.
     uint64 offset;                          //!< Data offset (used if the parameter or signal is part of a structure).
     
@@ -251,7 +264,9 @@ public:
     bool hasHomogeneousOrientation;     //!< `true` if all signals carried by this port are oriented in the same way.
     bool isTyped;                       //!< `true` if #type and #orientation for this port has already been set.
     bool isContiguous;                  //!< `true` if the port data is contiguous.
-    
+    //TODO Verify
+    bool isStructured;                   //!< `true` if the port has to be treated like a structure of its child signals
+
     uint32 runningOffset;
     uint64 typeBasedSize;
     uint64 offsetBasedSize;
@@ -293,7 +308,7 @@ public:
     /**
      * @brief Copy data from the associated MARTe2 signal to the associated model port.
      */
-    virtual bool CopyData() = 0;
+    virtual bool CopyData(SimulinkNonVirtualBusMode copyMode) = 0;
 };
 
 /*---------------------------------------------------------------------------*/
@@ -326,7 +341,7 @@ public:
      *          has column-major matrix signals they get transposed.
      * @returns `true` if data is successfully copied, `false` otherwise.
      */
-    virtual bool CopyData();
+    virtual bool CopyData(const SimulinkNonVirtualBusMode copyMode);
 };
 
 /*---------------------------------------------------------------------------*/
@@ -359,7 +374,7 @@ public:
      *          has column-major matrix signals they get transposed.
      * @returns `true` if data is successfully copied, `false` otherwise.
      */
-    virtual bool CopyData();
+    virtual bool CopyData(const SimulinkNonVirtualBusMode copyMode);
 };
 
 

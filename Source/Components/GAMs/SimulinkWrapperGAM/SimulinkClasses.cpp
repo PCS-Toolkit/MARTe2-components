@@ -368,6 +368,7 @@ SimulinkPort::SimulinkPort() : SimulinkSignal() {
     requiresTransposition = false;
     
     dataClass = "Port";
+    isStructured = false;
 }
 
 /*lint -e{1551} memory must be freed and functions called in the destructor are expected not to throw exceptions */
@@ -442,31 +443,84 @@ SimulinkOutputPort::~SimulinkOutputPort() {
 
 }
 
-bool SimulinkInputPort::CopyData() {
+bool SimulinkInputPort::CopyData(const SimulinkNonVirtualBusMode copyMode) {
     
-    bool ok;
+    bool ok = true;
     
+    // Copy signal content, telling apart the two modes (struct or byte array)
+    // If address==NULL, this signal or port has no corresponding MARTe signal and thus is not mapped
     if (!requiresTransposition) {
-        ok = MemoryOperationsHelper::Copy(address, MARTeAddress, CAPISize);
+        if( (copyMode == StructuredBusMode) && (isStructured) ) {
+            
+            for(uint32 carriedSignalIdx = 0u; (carriedSignalIdx < carriedSignals.GetSize()) && ok; carriedSignalIdx++) {
+                if(carriedSignals[carriedSignalIdx]->MARTeAddress != NULL) {
+                    ok = MemoryOperationsHelper::Copy(carriedSignals[carriedSignalIdx]->address, carriedSignals[carriedSignalIdx]->MARTeAddress, carriedSignals[carriedSignalIdx]->byteSize);
+                }
+            }
+        }
+        else {
+            if(MARTeAddress != NULL) {
+                ok = MemoryOperationsHelper::Copy(address, MARTeAddress, CAPISize);
+            }
+        }
     }
     else {
-        ok = TransposeAndCopy(address, MARTeAddress);
+        if( (copyMode == StructuredBusMode) && (isStructured) ) {
+            
+            for(uint32 carriedSignalIdx = 0u; (carriedSignalIdx < carriedSignals.GetSize()) && ok; carriedSignalIdx++) {
+                if(carriedSignals[carriedSignalIdx]->MARTeAddress != NULL) {
+                    ok = TransposeAndCopy(carriedSignals[carriedSignalIdx]->address, carriedSignals[carriedSignalIdx]->MARTeAddress);
+                }
+            }
+        }
+        else {
+            if(MARTeAddress != NULL) {
+                ok = TransposeAndCopy(address, MARTeAddress);
+            }
+        }
     }
     
     return ok;
 }
 
-bool SimulinkOutputPort::CopyData() {
+bool SimulinkOutputPort::CopyData(const SimulinkNonVirtualBusMode copyMode) {
     
-    bool ok;
-    
+    bool ok = true;
+
+    // Copy signal content, telling apart the two modes (struct or byte array)
+    // If address==NULL, this signal or port has no corresponding MARTe signal and thus is not mapped
     if (!requiresTransposition) {
-        ok = MemoryOperationsHelper::Copy(MARTeAddress, address, CAPISize);
+        if( (copyMode == StructuredBusMode) && (isStructured) ) {
+            
+            for(uint32 carriedSignalIdx = 0u; (carriedSignalIdx < carriedSignals.GetSize()) && ok; carriedSignalIdx++) {
+                
+                if(carriedSignals[carriedSignalIdx]->MARTeAddress != NULL) {
+                    ok = MemoryOperationsHelper::Copy(carriedSignals[carriedSignalIdx]->MARTeAddress, carriedSignals[carriedSignalIdx]->address, carriedSignals[carriedSignalIdx]->byteSize);
+                }
+            }
+        }
+        else {
+            if(MARTeAddress != NULL) {
+                ok = MemoryOperationsHelper::Copy(MARTeAddress, address, CAPISize);
+            }
+        }
     }
     else {
-        ok = TransposeAndCopy(MARTeAddress, address);
+        if( (copyMode == StructuredBusMode) && (isStructured) ) {
+            
+            for(uint32 carriedSignalIdx = 0u; (carriedSignalIdx < carriedSignals.GetSize()) && ok; carriedSignalIdx++) {
+                if(carriedSignals[carriedSignalIdx]->MARTeAddress != NULL) {
+                    ok = TransposeAndCopy(carriedSignals[carriedSignalIdx]->MARTeAddress, carriedSignals[carriedSignalIdx]->address);
+                }
+            }
+        }
+        else {
+            if(MARTeAddress != NULL) {
+                ok = TransposeAndCopy(MARTeAddress, address);
+            }
+        }
     }
-    
+        
     return ok;
 }
 

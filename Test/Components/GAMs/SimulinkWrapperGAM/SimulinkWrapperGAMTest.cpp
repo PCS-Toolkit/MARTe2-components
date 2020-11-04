@@ -32,10 +32,10 @@
 /*---------------------------------------------------------------------------*/
 
 #include "File.h"
-#include "SimulinkWrapperGAMTest.h"
-#include "SimulinkWrapperGAM.h"
 #include "MatlabDataArray.hpp"
 #include "MatlabEngine.hpp"
+#include "SimulinkWrapperGAMTest.h"
+#include "SimulinkWrapperGAM.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
@@ -74,7 +74,7 @@ public:
     void* GetInputSignalMemoryTest(MARTe::uint32 signalIdx) {
         return GetInputSignalMemory(signalIdx);
     }
-    
+
     void PrintAlgoInfoTest() {
         PrintAlgoInfo();
     }
@@ -339,6 +339,8 @@ void SimulinkGAMGTestEnvironment::DeleteTestModel() {
         
         toDelete.SetByName(modelPath.Buffer());
         if (toDelete.Exists()) {
+
+            //Comment to avoid recompilation
             ok = toDelete.Delete();
         }
         
@@ -378,7 +380,9 @@ bool SimulinkWrapperGAMTest::TestSetupWithTemplate(StreamString scriptCall,
                                                    StreamString inputSignals,
                                                    StreamString outputSignals,
                                                    StreamString parameters,
-                                                   ObjectRegistryDatabase* objRegDatabase = NULL_PTR(ObjectRegistryDatabase*)
+                                                   ObjectRegistryDatabase* objRegDatabase = NULL_PTR(ObjectRegistryDatabase*),
+                                                   bool         structuredSignalsAsByteArrays = true,
+                                                   bool         enforceModelSignalCoverage = false
                                                    ) {
     
     StreamString modelName, modelFolder, modelFullPath;
@@ -400,12 +404,14 @@ bool SimulinkWrapperGAMTest::TestSetupWithTemplate(StreamString scriptCall,
     config.Printf(configTemplate.Buffer(),
                   modelFullPath.Buffer(),
                   modelName.Buffer(),
+                  structuredSignalsAsByteArrays?"ByteArray":"Structured",
+                  enforceModelSignalCoverage?"1":"0",
                   skipUnlinkedParams.Buffer(),
                   inputSignals.Buffer(),
                   outputSignals.Buffer(),
                   parameters.Buffer()
                  );
-    
+
     // Test setup
     bool ok = false;
     
@@ -440,7 +446,7 @@ bool SimulinkWrapperGAMTest::TestInitialise() {
     ok &= config.Write("SymbolPrefix",               modelName);
     ok &= config.Write("TunableParamExternalSource", "ExtSource");
     ok &= config.Write("Verbosity",                  2);
-    ok &= config.Write("SkipUnlinkedTunableParams",  1);
+    ok &= config.Write("SkipInvalidTunableParams",  1);
     
     ok &= config.CreateAbsolute("Parameters");
     ok &= config.MoveAbsolute("Parameters");
@@ -496,6 +502,28 @@ bool SimulinkWrapperGAMTest::TestInitialise_Failed_MissingSymbolPrefix() {
     MARTe::ConfigurationDatabase config;
     
     config.Write("Library",                    modelFullPath);
+    
+    return !TestInitialiseWithConfiguration(config);
+    
+}
+
+bool SimulinkWrapperGAMTest::TestInitialise_Failed_WrongNonVirtualBusMode() {
+    
+    MARTe::StreamString modelName, modelFolder, modelFullPath;
+    
+    modelFolder = testEnvironment.modelFolder;
+    modelName   = testEnvironment.CreateTestModel("createTestModel();");
+    
+    modelFullPath  = modelFolder;
+    modelFullPath += "/";
+    modelFullPath += modelName;
+    modelFullPath += ".so";
+    
+    MARTe::ConfigurationDatabase config;
+    
+    config.Write("Library",           modelFullPath);
+    config.Write("SymbolPrefix",      modelName);
+    config.Write("NonVirtualBusMode", "Structure");
     
     return !TestInitialiseWithConfiguration(config);
     
@@ -659,7 +687,7 @@ bool SimulinkWrapperGAMTest::TestInitialise_MissingParametersLeaf() {
     config.Write("SymbolPrefix", modelName);
     config.Write("TunableParamExternalSource", "ExtSource");
     config.Write("Verbosity",                  2);
-    config.Write("SkipUnlinkedTunableParams",  1);
+    config.Write("SkipInvalidTunableParams",  1);
     
     return TestInitialiseWithConfiguration(config);
     
@@ -784,8 +812,8 @@ bool SimulinkWrapperGAMTest::TestSetup() {
 }
 
 bool SimulinkWrapperGAMTest::TestSetup_StructTunableParameters_1() {
-    
-    StreamString scriptCall = "createTestModel('hasStructParams', true);";
+    //TODO Check if hasTunableParams has to be added
+    StreamString scriptCall = "createTestModel('hasStructParams', true, 'hasTunableParams', true);";
     
     StreamString skipUnlinkedParams = "0";
     
@@ -1018,6 +1046,8 @@ bool SimulinkWrapperGAMTest::TestSetup_StructTunableParameters_3() {
     config.Printf(configTemplate.Buffer(),
                   modelFullPath.Buffer(),
                   modelName.Buffer(),
+                  "ByteArray",
+                  "0",
                   skipUnlinkedParams.Buffer(),
                   inputSignals.Buffer(),
                   outputSignals.Buffer(),
@@ -1101,13 +1131,11 @@ bool SimulinkWrapperGAMTest::TestSetup_StructTunableParameters_3() {
     god->Purge();
     
     return ok;
-    
-    return ok;
 }
 
 bool SimulinkWrapperGAMTest::TestSetup_StructTunableParametersFromExternalSource() {
     
-    StreamString scriptCall = "createTestModel('hasStructParams', true);";
+    StreamString scriptCall = "createTestModel('hasStructParams', true, 'hasTunableParams', true);";
     
     StreamString skipUnlinkedParams = "0";
     
@@ -1168,6 +1196,8 @@ bool SimulinkWrapperGAMTest::TestSetup_StructTunableParametersFromExternalSource
     config.Printf(configTemplate.Buffer(),
                   modelFullPath.Buffer(),
                   modelName.Buffer(),
+                  "ByteArray",
+                  "0",
                   skipUnlinkedParams.Buffer(),
                   inputSignals.Buffer(),
                   outputSignals.Buffer(),
@@ -1285,26 +1315,25 @@ bool SimulinkWrapperGAMTest::TestSetup_NoTunableParameters() {
 
 bool SimulinkWrapperGAMTest::TestSetup_WithStructSignals() {
     
-    StreamString scriptCall = "createTestModel('hasStructSignals',     true);";
+    StreamString scriptCall = "createTestModel('hasStructSignals', true);";
     
     StreamString skipUnlinkedParams = "1";
     
     StreamString inputSignals = ""
         "InputSignals = { "
-        "In1_ScalarDouble  = {"
-        "    DataSource = Drv1"
-        "    Type = float64"
-        "    NumberOfElements = 1"
-        "    NumberOfDimensions = 0"
-        "}"
-        "In2_ScalarUint32  = {"
-        "    DataSource = Drv1"
-        "    Type = uint32"
-        "    NumberOfElements = 1"
-        "    NumberOfDimensions = 0"
-        "}"
+        "    In1_ScalarDouble  = {"
+        "        DataSource = Drv1"
+        "        Type = float64"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    In2_ScalarUint32  = {"
+        "        DataSource = Drv1"
+        "        Type = uint32"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
         "}";
-
 
     StreamString outputSignals = ""
         "OutputSignals = { "
@@ -1337,7 +1366,7 @@ bool SimulinkWrapperGAMTest::TestSetup_WithStructSignals() {
 }
 
 bool SimulinkWrapperGAMTest::TestSetup_WithNestedStructSignals() {
-    
+
     StreamString scriptCall = "createTestModel('hasStructSignals', true, 'modelComplexity', 2, 'hasInputs', false);";
     
     StreamString skipUnlinkedParams = "1";
@@ -1379,7 +1408,7 @@ bool SimulinkWrapperGAMTest::TestSetup_WithNestedStructSignals() {
         "Out21_NonVirtualBus  = {"
         "    DataSource = DDB1"
         "    Type = uint8"
-        "    NumberOfElements = 24"
+        "    NumberOfElements = 96"
         "    NumberOfDimensions = 1"
         "}"
         "}";
@@ -1392,7 +1421,7 @@ bool SimulinkWrapperGAMTest::TestSetup_WithNestedStructSignals() {
     return ok;
 }
 
-bool SimulinkWrapperGAMTest::TestSetup_SkipUnlinkedTunableParams() {
+bool SimulinkWrapperGAMTest::TestSetup_SkipInvalidTunableParams() {
 
     StreamString scriptCall = "createTestModel('hasTunableParams',     true);";
     
@@ -2982,7 +3011,7 @@ bool SimulinkWrapperGAMTest::TestParameterActualisation_Float() {
 
 bool SimulinkWrapperGAMTest::TestExecute() {
     
-    StreamString scriptCall = " createTestModel('modelComplexity', 4);";
+    StreamString scriptCall = " createTestModel('modelComplexity', 4, 'hasTunableParams', true);";
     
     StreamString skipUnlinkedParams = "0";
     
@@ -3049,8 +3078,8 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         "Out2_ScalarUint32  = {"
         "    DataSource = DDB1"
         "    Type = uint32"
-        "    NumberOfElements = 1"
-        "    NumberOfDimensions = 0"
+        "    NumberOfElements = 10"
+        "    NumberOfDimensions = 1"
         "}"
         "Out3_VectorDouble = {"
         "    DataSource = DDB1"
@@ -3091,28 +3120,7 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         "}";
 
     StreamString parameters = ""
-        "matrixConstant = (float64) { {10, 10, 10}, {11, 11, 11}, {12, 12, 12} }"
-        "vectorConstant = (uint32) { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10 }"
-        "structScalar-one         = (float64) 3.141592653 "
-        "structScalar-nested1-one = (float64) 2.718281828 "
-        "structScalar-nested1-two = (float64) 2.718281828 "
-        "structScalar-nested2-one = (float64) 1.414213562 "
-        "structScalar-nested2-two = (float64) 1.414213562 "
-        "vectorConstant2 = (float64) { 0, 1, 2, 3, 4, 5, 6, 7 }"
-        "matrixConstant2 = (float64) { {10, 10, 10, 10, 10, 10},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {12, 12, 12, 12, 12, 12}}"
-        "structMixed-one = (float64) 10 "
-        "structMixed-vec = (float64) { 0, 1, 2, 3, 4, 5, 6, 7 }"
-        "structMixed-mat = (uint32) { {10, 10, 10, 10, 10, 10},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {11, 11, 11, 11, 11, 11},"
-        "                              {12, 12, 12, 12, 12, 12}}";
+        "vectorConstant = (uint32) { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }";
     
     StreamString inputValues = ""
         "In1_ScalarDouble = (float64) 3.141592653 "
@@ -3142,7 +3150,7 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         ;
     
     // Model is column-major, so matrices are expected to be transposed when copied
-    StreamString expectedValues = ""
+    StreamString expectedInputValues = ""
         "In1_ScalarDouble = (float64) 3.141592653 "
         "In2_ScalarUint32 = (uint32)  2 "
         "In3_VectorDouble = (float64) { 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 } "
@@ -3168,6 +3176,33 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         "                                 { 22, 22, 22, 22 },"
         "                                 { 23, 23, 23, 23 } }"
         ;
+        
+    StreamString expectedOutputValues = ""
+        "Out1_ScalarDouble = (float64) 3.141592653 "
+        "Out2_ScalarUint32 = (uint32)  { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 } "
+        "Out3_VectorDouble = (float64) { 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 } "
+        "Out4_VectorUint32 = (uint32)  { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10 } "
+        "Out5_MatrixDouble = (float64) { { 10, 10, 10, 10, 10, 10}, "
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 12, 12, 12, 12, 12, 12} }"
+        "Out6_MatrixUint32 = (uint32)  { { 10, 10, 10, 10, 10, 10}, "
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 11, 11, 11, 11, 11, 11},"
+        "                               { 12, 12, 12, 12, 12, 12} }"
+        "Out7_3DMatrixDouble = (float64) { { 20, 20, 20, 20 },"
+        "                                 { 21, 21, 21, 21 },"
+        "                                 { 22, 22, 22, 22 },"
+        "                                 { 23, 23, 23, 23 } }"
+        "Out8_3DMatrixUint32 = (uint32)  { { 20, 20, 20, 20 },"
+        "                                 { 21, 21, 21, 21 },"
+        "                                 { 22, 22, 22, 22 },"
+        "                                 { 23, 23, 23, 23 } }"
+        ;
     
     // Setup GAM
     ObjectRegistryDatabase* ord = ObjectRegistryDatabase::Instance();
@@ -3181,7 +3216,7 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         StandardParser parser(inputValues, cdb);
         ok = parser.Parse();
     }
-    
+
     if (ok) {
         ReferenceT<SimulinkWrapperGAMHelper> gam = ord->Find("Test.Functions.GAM1");
         
@@ -3225,14 +3260,24 @@ bool SimulinkWrapperGAMTest::TestExecute() {
         }
         
         // Check if signals were correctly copied in the model
+        
+        ConfigurationDatabase inCdb;
         if (ok) {
-            expectedValues.Seek(0u);
-            StandardParser parser(expectedValues, cdb);
+            expectedInputValues.Seek(0u);
+            StandardParser parser(expectedInputValues, inCdb);
+            ok = parser.Parse();
+        }
+        
+        ConfigurationDatabase outCdb;
+        if (ok) {
+            expectedOutputValues.Seek(0u);
+            StandardParser parser(expectedOutputValues, outCdb);
             ok = parser.Parse();
         }
         
         if (ok) {
-                
+            
+            // Compare input and outputs with expected values
             for (uint32 signalIdx = 0u; (signalIdx < gam->GetNumberOfInputSignals()) && ok ; signalIdx++) {
                 
                 SimulinkPort* port = gam->GetPort(signalIdx);
@@ -3241,11 +3286,28 @@ bool SimulinkWrapperGAMTest::TestExecute() {
                 uint32       portSize = port->byteSize;
                 void*        portAddr = port->address;
                 
-                AnyType arrayDescription = cdb.GetType(portName.Buffer());
+                AnyType arrayDescription = inCdb.GetType(portName.Buffer());
                 ok = arrayDescription.GetDataPointer() != NULL_PTR(void *);
                 if (ok) {
                     ok = (MemoryOperationsHelper::Compare(portAddr, arrayDescription.GetDataPointer(), portSize) == 0u);
                 }
+                
+                // corresponding output
+                port = gam->GetPort(signalIdx + gam->GetNumberOfInputSignals());
+                
+                portName = port->fullName;
+                portSize = port->byteSize;
+                portAddr = port->address;
+                
+                arrayDescription = outCdb.GetType(portName.Buffer());
+                ok = arrayDescription.GetDataPointer() != NULL_PTR(void *);
+                if (ok) {
+                    ok = (MemoryOperationsHelper::Compare(portAddr, arrayDescription.GetDataPointer(), portSize) == 0u);
+                    if (!ok) {
+                        REPORT_ERROR_STATIC(ErrorManagement::Debug, "Signal %s comparison failed.", portName.Buffer());
+                    }
+                }
+                
             }
         }
     }
@@ -3305,3 +3367,926 @@ bool SimulinkWrapperGAMTest::TestPrintAlgoInfo() {
     return ok;
     
 }
+
+bool SimulinkWrapperGAMTest::Test_StructuredSignals() {
+
+    StreamString scriptCall = "createTestModel('hasStructSignals', true, 'hasInputs', true, 'hasStructInputs', true);";
+
+    StreamString skipUnlinkedParams = "1";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "    In1_Structured = { "
+        "        In1_ScalarDouble  = { "
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        In2_ScalarUint32  = { "
+        "            DataSource = Drv1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "    Out1_ScalarDouble = {"
+        "        DataSource = DDB1"
+        "        Type = float64"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out2_ScalarUint32 = {"
+        "        DataSource = DDB1"
+        "        Type = uint32"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out20_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString parameters = "";
+
+    // Test setup
+    bool ok = TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters, NULL, false, false);
+
+
+    return ok;
+}
+
+bool SimulinkWrapperGAMTest::TestExecute_WithStructuredSignals() {
+
+    StreamString scriptCall = "createTestModel('hasStructSignals', true, 'hasStructInputs', true, 'hasInputs', true);";
+
+    StreamString skipUnlinkedParams = "1";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "    In1_Structured = { "
+        "        In1_ScalarDouble  = { "
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        In2_ScalarUint32  = { "
+        "            DataSource = Drv1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "    Out1_ScalarDouble = {"
+        "        DataSource = DDB1"
+        "        Type = float64"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out2_ScalarUint32 = {"
+        "        DataSource = DDB1"
+        "        Type = uint32"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out20_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString inputValues = ""
+        "In1_Structured.In1_ScalarDouble = (float64) 3.141592653 "
+        "In1_Structured.In2_ScalarUint32 = (uint32)  2";
+        
+    StreamString expectedOutputValues = ""
+        "Out20_NonVirtualBus.Signal2 = (float64) 3.141592653 "
+        "Out20_NonVirtualBus.Signal1 = (uint32)  2";
+
+    StreamString parameters = "";
+
+    ObjectRegistryDatabase* ord = ObjectRegistryDatabase::Instance();
+    // Test setup
+    bool ok = TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters, ord, false, false);
+
+    ConfigurationDatabase cdb;
+    if (ok) {
+        inputValues.Seek(0u);
+        StandardParser parser(inputValues, cdb);
+        ok = parser.Parse();
+    }
+    
+    ConfigurationDatabase outCdb;
+    if (ok) {
+        expectedOutputValues.Seek(0u);
+        StandardParser parser(expectedOutputValues, outCdb);
+        ok = parser.Parse();
+    }
+
+    if (ok) {
+        ReferenceT<SimulinkWrapperGAMHelper> gam = ord->Find("Test.Functions.GAM1");
+
+        ok = gam.IsValid();
+
+        // Copy inputValues to the GAM input signal memory
+        if (ok) {
+
+            for (uint32 signalIdx = 0u; (signalIdx < gam->GetNumberOfInputSignals()) && ok ; signalIdx++) {
+
+                StreamString signalName;
+                ok = gam->GetSignalName(InputSignals, signalIdx, signalName);
+
+
+                AnyType arrayDescription = cdb.GetType(signalName.Buffer());
+                ok = arrayDescription.GetDataPointer() != NULL_PTR(void *);
+
+                //
+                uint32 memoryAllocationSize = 0u;
+                switch (arrayDescription.GetNumberOfDimensions()) {
+
+                    case 0u:
+                        memoryAllocationSize = arrayDescription.GetByteSize();
+                        break;
+
+                    case 1u:
+                        memoryAllocationSize = arrayDescription.GetByteSize() * arrayDescription.GetNumberOfElements(0u);
+                        break;
+
+                    case 2u:
+                        memoryAllocationSize = arrayDescription.GetByteSize() * arrayDescription.GetNumberOfElements(0u) * arrayDescription.GetNumberOfElements(1u);
+                        break;
+                }
+                if (ok) {
+                    ok = MemoryOperationsHelper::Copy(gam->GetInputSignalMemoryTest(signalIdx), arrayDescription.GetDataPointer(), memoryAllocationSize);
+                }
+            }
+
+            ok = gam->Execute();
+        }
+
+        if (ok) {
+            SimulinkPort *inputPort = gam->GetPort(0);
+            SimulinkSignal* in1 = inputPort->carriedSignals[0];
+            SimulinkSignal* in2 = inputPort->carriedSignals[1];
+
+            AnyType adIn1 = cdb.GetType(in1->fullName.Buffer());
+            AnyType adIn2 = cdb.GetType(in2->fullName.Buffer());
+
+            ok =    adIn1.GetDataPointer() != NULL_PTR(void *) &&
+                    adIn2.GetDataPointer() != NULL_PTR(void *);
+
+            if(ok) {
+                ok =    (MemoryOperationsHelper::Compare(in1->address, adIn1.GetDataPointer(), in1->byteSize) == 0u) &&
+                        (MemoryOperationsHelper::Compare(in2->address, adIn2.GetDataPointer(), in2->byteSize) == 0u);
+            }
+            else {
+                REPORT_ERROR_STATIC(ErrorManagement::FatalError, "Wrong data pointers");
+            }
+        }
+        
+        if (ok) {
+            SimulinkPort *outputPort = gam->GetPort(3);
+            SimulinkSignal* out1 = outputPort->carriedSignals[0];
+            SimulinkSignal* out2 = outputPort->carriedSignals[1];
+
+            AnyType adOut1 = outCdb.GetType(out1->fullName.Buffer());
+            AnyType adOut2 = outCdb.GetType(out2->fullName.Buffer());
+
+            ok =    adOut1.GetDataPointer() != NULL_PTR(void *) &&
+                    adOut2.GetDataPointer() != NULL_PTR(void *);
+
+            if(ok) {
+                ok =    (SafeMath::IsEqual<float64>( *( (float64*) out2->address), *( (float64*) adOut2.GetDataPointer() ) ) ) &&
+                        (SafeMath::IsEqual<uint32> ( *( (uint32*)  out1->address), *( (uint32*)  adOut1.GetDataPointer() ) ) );
+            }
+        }
+    }
+    
+    if (ok) {
+        ord->Purge();
+    }
+    
+    return ok;
+}
+
+bool SimulinkWrapperGAMTest::Test_StructuredSignals_Failed() {
+    StreamString scriptCall = "createTestModel('hasStructSignals', true, 'hasStructInputs', true, 'hasInputs', true);";
+
+    StreamString skipUnlinkedParams = "1";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "    In1_Structured = { "
+        "        In1_ScalarDouble  = { "
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        In2_ScalarUint32  = { "
+        "            DataSource = Drv1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "    Out2_ScalarUint32 = {"
+        "        DataSource = DDB1"
+        "        Type = uint32"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out20_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString parameters = "";
+
+    // Test setup
+    bool ok = !TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters, NULL, false, true);
+
+    return ok;
+}
+
+bool SimulinkWrapperGAMTest::Test_MultiMixedSignalsTranspose(bool transpose) {
+    StreamString scriptCall;
+
+    if(transpose) {
+        scriptCall = "createTestModel('hasStructSignals', true, 'hasInputs', true, 'hasStructInputs', true, 'modelComplexity', 3, 'dataOrientation', 'Column-major');";
+    }
+    else {
+        scriptCall = "createTestModel('hasStructSignals', true, 'hasInputs', true, 'hasStructInputs', true, 'modelComplexity', 3, 'dataOrientation', 'Row-major');";
+    }
+
+
+    StreamString skipUnlinkedParams = "1";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "    In1_Structured = { "
+        "        In1_ScalarDouble  = { "
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        In2_ScalarUint32  = { "
+        "            DataSource = Drv1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "}"
+        "    In2_Structured = { "
+        "        In3_VectorDouble = {"
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 8"
+        "            NumberOfDimensions = 1"
+        "        }"
+        "        In4_VectorUint32  = {"
+        "            DataSource = Drv1"
+        "            Type = uint32"
+        "            NumberOfElements = 8"
+        "            NumberOfDimensions = 1"
+        "        }"
+        "}"
+        "    In3_Structured = { "
+        "        In5_MatrixDouble = {"
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 36"
+        "            NumberOfDimensions = 2"
+        "        }"
+        "        In6_MatrixDouble  = {"
+        "            DataSource = Drv1"
+        "            Type = float64"
+        "            NumberOfElements = 36"
+        "            NumberOfDimensions = 2"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "    Out1_ScalarDouble = {"
+        "        DataSource = DDB1"
+        "        Type = float64"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out2_ScalarUint32 = {"
+        "        DataSource = DDB1"
+        "        Type = uint32"
+        "        NumberOfElements = 1"
+        "        NumberOfDimensions = 0"
+        "    }"
+        "    Out3_VectorDouble = {"
+        "        DataSource = DDB1"
+        "        Type = float64"
+        "        NumberOfElements = 8"
+        "        NumberOfDimensions = 1"
+        "    }"
+        "    Out4_VectorUint32 = {"
+        "        DataSource = DDB1"
+        "        Type = uint32"
+        "        NumberOfElements = 8"
+        "        NumberOfDimensions = 1"
+        "    }"
+        "    Out5_MatrixDouble = {"
+        "        DataSource = DDB1"
+        "        Type = float64"
+        "        NumberOfElements = 36"
+        "        NumberOfDimensions = 2"
+        "    }"
+        "    Out20_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 1"
+        "            NumberOfDimensions = 0"
+        "        }"
+        "    }"
+        "    Out21_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 8"
+        "            NumberOfDimensions = 1"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 8"
+        "            NumberOfDimensions = 1"
+        "        }"
+        "    }"
+        "    Out31_NonVirtualBus = { "
+        "        Signal1 = {"
+        "            DataSource = DDB1"
+        "            Type = uint32"
+        "            NumberOfElements = 36"
+        "            NumberOfDimensions = 2"
+        "        }"
+        "        Signal2  = {"
+        "            DataSource = DDB1"
+        "            Type = float64"
+        "            NumberOfElements = 36"
+        "            NumberOfDimensions = 2"
+        "        }"
+        "    }"
+        "}";
+
+    StreamString inputValues = ""
+            "In1_Structured.In2_ScalarUint32 = (uint32)  2 "
+            "In1_Structured.In1_ScalarDouble = (float64) 3.141592653 "
+            "In2_Structured.In4_VectorUint32 = (uint32)  { 12, 1, 2, 3, 4, 5, 6, 7 } "
+            "In2_Structured.In3_VectorDouble = (float64) { 2.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0} "
+            "In3_Structured.In6_MatrixDouble = (float64)  { { 9, 11, 11, 11, 11, 12},"
+            "                                               { 10, 11, 11, 11, 11, 12},"
+            "                                               { 11, 11, 11, 11, 11, 12},"
+            "                                               { 12, 11, 11, 11, 11, 12},"
+            "                                               { 13, 11, 11, 11, 11, 12},"
+            "                                               { 14, 11, 11, 11, 11, 12} }"
+            "In3_Structured.In5_MatrixDouble = (float64) { { 1.0, 11.0, 11.0, 11.0, 11.0, 12.0},"
+            "                                              { 2.0, 11.0, 11.0, 11.0, 11.0, 12.0},"
+            "                                              { 3.0, 11.0, 11.0, 11.0, 11.0, 12.0},"
+            "                                              { 4.0, 11.0, 11.0, 11.0, 11.0, 12.0},"
+            "                                              { 5.0, 11.0, 11.0, 11.0, 11.0, 12.0},"
+            "                                              { 6.0, 11.0, 11.0, 11.0, 11.0, 12.0} }";
+
+    StreamString checkValues = ""
+            "In1_Structured.In2_ScalarUint32 = (uint32)  2 "
+            "In1_Structured.In1_ScalarDouble = (float64) 3.141592653 "
+            "In2_Structured.In4_VectorUint32 = (uint32)  { 12, 1, 2, 3, 4, 5, 6, 7 } "
+            "In2_Structured.In3_VectorDouble = (float64) { 2.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0} "
+            "In3_Structured.In6_MatrixDouble = (float64)  { {  9, 10, 11, 12, 13, 14 },"
+            "                                               { 11, 11, 11, 11, 11, 11 },"
+            "                                               { 11, 11, 11, 11, 11, 11 },"
+            "                                               { 11, 11, 11, 11, 11, 11 },"
+            "                                               { 11, 11, 11, 11, 11, 11 },"
+            "                                               { 12, 12, 12, 12, 12, 12 } }"
+            "In3_Structured.In5_MatrixDouble = (float64) { { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0},"
+            "                                              { 11.0, 11.0, 11.0, 11.0, 11.0, 11.0},"
+            "                                              { 11.0, 11.0, 11.0, 11.0, 11.0, 11.0},"
+            "                                              { 11.0, 11.0, 11.0, 11.0, 11.0, 11.0},"
+            "                                              { 11.0, 11.0, 11.0, 11.0, 11.0, 11.0},"
+            "                                              { 12.0, 12.0, 12.0, 12.0, 12.0, 12.0} }";
+
+
+    StreamString parameters = "";
+
+    ObjectRegistryDatabase* ord = ObjectRegistryDatabase::Instance();
+    // Test setup
+    bool ok = TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters, ord, false, false);
+
+    ConfigurationDatabase cdb;
+    if (ok) {
+        inputValues.Seek(0u);
+        StandardParser parser(inputValues, cdb);
+        ok = parser.Parse();
+    }
+
+    ConfigurationDatabase cdbOut;
+
+    if(ok && transpose) {
+        checkValues.Seek(0u);
+        StandardParser parser(checkValues, cdbOut);
+        ok = parser.Parse();
+    }
+    else {
+        cdbOut = cdb;
+    }
+
+
+    if (ok) {
+        ReferenceT<SimulinkWrapperGAMHelper> gam = ord->Find("Test.Functions.GAM1");
+
+        ok = gam.IsValid();
+
+        // Copy inputValues to the GAM input signal memory
+        if (ok) {
+
+            for (uint32 signalIdx = 0u; (signalIdx < gam->GetNumberOfInputSignals()) && ok ; signalIdx++) {
+
+                StreamString signalName;
+
+                ok = gam->GetSignalName(InputSignals, signalIdx, signalName);
+
+                AnyType arrayDescription = cdb.GetType(signalName.Buffer());
+                ok = arrayDescription.GetDataPointer() != NULL_PTR(void *);
+
+                //
+                uint32 memoryAllocationSize = 0u;
+
+                switch (arrayDescription.GetNumberOfDimensions()) {
+
+                    case 0u:
+                        memoryAllocationSize = arrayDescription.GetByteSize();
+                        break;
+
+                    case 1u:
+                        memoryAllocationSize = arrayDescription.GetByteSize() * arrayDescription.GetNumberOfElements(0u);
+                        break;
+
+                    case 2u:
+                        memoryAllocationSize = arrayDescription.GetByteSize() * arrayDescription.GetNumberOfElements(0u) * arrayDescription.GetNumberOfElements(1u);
+                        break;
+                }
+                if (ok) {
+                    ok = MemoryOperationsHelper::Copy(gam->GetInputSignalMemoryTest(signalIdx), arrayDescription.GetDataPointer(), memoryAllocationSize);
+                }
+            }
+
+            ok = gam->Execute();
+        }
+
+        if (ok) {
+             SimulinkPort *inputPort1 = gam->GetPort(0);
+             SimulinkPort *inputPort2 = gam->GetPort(1);
+             SimulinkPort *inputPort3 = gam->GetPort(2);
+
+             SimulinkSignal* in1 = inputPort1->carriedSignals[0];
+             SimulinkSignal* in2 = inputPort1->carriedSignals[1];
+             SimulinkSignal* in3 = inputPort2->carriedSignals[0];
+             SimulinkSignal* in4 = inputPort2->carriedSignals[1];
+             SimulinkSignal* in5 = inputPort3->carriedSignals[0];
+             SimulinkSignal* in6 = inputPort3->carriedSignals[1];
+
+             AnyType adIn1 = cdbOut.GetType(in1->fullName.Buffer());
+             AnyType adIn2 = cdbOut.GetType(in2->fullName.Buffer());
+             AnyType adIn3 = cdbOut.GetType(in3->fullName.Buffer());
+             AnyType adIn4 = cdbOut.GetType(in4->fullName.Buffer());
+             AnyType adIn5 = cdbOut.GetType(in5->fullName.Buffer());
+             AnyType adIn6 = cdbOut.GetType(in6->fullName.Buffer());
+
+             ok =    adIn1.GetDataPointer() != NULL_PTR(void *) &&
+                     adIn2.GetDataPointer() != NULL_PTR(void *) &&
+                     adIn3.GetDataPointer() != NULL_PTR(void *) &&
+                     adIn4.GetDataPointer() != NULL_PTR(void *) &&
+                     adIn5.GetDataPointer() != NULL_PTR(void *) &&
+                     adIn6.GetDataPointer() != NULL_PTR(void *);
+
+             if(ok) {
+                 bool ok1, ok2, ok3, ok4, ok5, ok6;
+                 ok1 = (MemoryOperationsHelper::Compare(in1->address, adIn1.GetDataPointer(), in1->byteSize) == 0u);
+                 ok2 = (MemoryOperationsHelper::Compare(in2->address, adIn2.GetDataPointer(), in2->byteSize) == 0u);
+                 ok3 = (MemoryOperationsHelper::Compare(in3->address, adIn3.GetDataPointer(), in3->byteSize) == 0u);
+                 ok4 = (MemoryOperationsHelper::Compare(in4->address, adIn4.GetDataPointer(), in4->byteSize) == 0u);
+                 ok5 = (MemoryOperationsHelper::Compare(in5->address, adIn5.GetDataPointer(), in5->byteSize) == 0u);
+                 ok6 = (MemoryOperationsHelper::Compare(in6->address, adIn6.GetDataPointer(), in6->byteSize) == 0u);
+
+                 ok = ok1 && ok2 && ok3 && ok4 && ok5 && ok6;
+
+             }
+             else {
+                 REPORT_ERROR_STATIC(ErrorManagement::FatalError, "Wrong data pointers");
+             }
+            
+            // Check also outputs
+            if (ok) {
+                SimulinkPort *outputPort1 = gam->GetPort(9);
+                SimulinkPort *outputPort2 = gam->GetPort(10);
+                SimulinkPort *outputPort3 = gam->GetPort(11);
+                
+                SimulinkSignal* out1 = outputPort1->carriedSignals[0];
+                SimulinkSignal* out2 = outputPort1->carriedSignals[1];
+                SimulinkSignal* out3 = outputPort2->carriedSignals[0];
+                SimulinkSignal* out4 = outputPort2->carriedSignals[1];
+                SimulinkSignal* out5 = outputPort3->carriedSignals[0];
+                SimulinkSignal* out6 = outputPort3->carriedSignals[1];
+                
+                if(ok) {
+                    bool ok1, ok2, ok3, ok4, ok5, ok6;
+                    ok1 = SafeMath::IsEqual<uint32> ( *( (uint32*)  out1->address), *( (uint32*)  adIn1.GetDataPointer() ) );
+                    ok2 = SafeMath::IsEqual<float64>( *( (float64*) out2->address), *( (float64*) adIn2.GetDataPointer() ) );
+                    
+                    ok3 = true;
+                    for (uint32 idx = 0u; idx < out3->totalNumberOfElements; idx++) {
+                        ok3 &= SafeMath::IsEqual<uint32> ( *( (uint32*)  out3->address + idx), *( (uint32*)  adIn3.GetDataPointer() + idx ) );
+                    }
+                    
+                    ok4 = true;
+                    for (uint32 idx = 0u; idx < out4->totalNumberOfElements; idx++) {
+                        ok4 &= SafeMath::IsEqual<float64> ( *( (float64*)  out4->address + idx), *( (float64*)  adIn4.GetDataPointer() + idx ) );
+                    }
+                    
+                    ok5 = true;
+                    for (uint32 idx = 0u; idx < out5->totalNumberOfElements; idx++) {
+                        ok6 &= SafeMath::IsEqual<uint32> ( static_cast<uint32>( *( (uint32*)  out5->address + idx) ), *( (uint32*)  adIn5.GetDataPointer() + idx ) );
+                    }
+                    
+                    ok6 = true;
+                    for (uint32 idx = 0u; idx < out6->totalNumberOfElements; idx++) {
+                        ok6 &= SafeMath::IsEqual<float64> ( *( (float64*)  out6->address + idx), *( (float64*)  adIn6.GetDataPointer() + idx ) );
+                    }
+                    ok = ok1 && ok2 && ok3 && ok4 && ok6 && ok5;
+                }
+                
+            }
+            
+        }
+    }
+    
+    if (ok) {
+        ord->Purge();
+    }
+
+    return ok;
+}
+
+bool SimulinkWrapperGAMTest::TestSetup_WithNotFoundParameter_Failed(bool skipUnlinked) {
+
+    StreamString scriptCall = "createTestModel('modelComplexity', 3, 'hasTunableParams', true, 'hasStructParams', true');";
+
+    StreamString skipUnlinkedParams = skipUnlinked?"0":"1";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "In1_ScalarDouble = {"
+        "    DataSource = Drv1"
+        "    Type = float64"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "In2_ScalarUint32  = {"
+        "    DataSource = Drv1"
+        "    Type = uint32"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "In3_VectorDouble = {"
+        "    DataSource = Drv1"
+        "    Type = float64"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "In4_VectorUint32  = {"
+        "    DataSource = Drv1"
+        "    Type = uint32"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "In5_MatrixDouble = {"
+        "    DataSource = Drv1"
+        "    Type = float64"
+        "    NumberOfElements = 36"
+        "    NumberOfDimensions = 2"
+        "}"
+        "In6_MatrixUint32  = {"
+        "    DataSource = Drv1"
+        "    Type = uint32"
+        "    NumberOfElements = 36"
+        "    NumberOfDimensions = 2"
+        "}"
+        "}";
+
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "Out1_ScalarDouble = {"
+        "    DataSource = DDB1"
+        "    Type = float64"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "Out2_ScalarUint32  = {"
+        "    DataSource = DDB1"
+        "    Type = uint32"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "Out3_VectorDouble = {"
+        "    DataSource = DDB1"
+        "    Type = float64"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "Out4_VectorUint32  = {"
+        "    DataSource = DDB1"
+        "    Type = uint32"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "Out5_MatrixDouble = {"
+        "    DataSource = DDB1"
+        "    Type = float64"
+        "    NumberOfElements = 36"
+        "    NumberOfDimensions = 2"
+        "}"
+        "Out6_MatrixUint32  = {"
+        "    DataSource = DDB1"
+        "    Type = uint32"
+        "    NumberOfElements = 36"
+        "    NumberOfDimensions = 2"
+        "}"
+        "}";
+
+    StreamString parameters = ""
+        "matrixConstant = (float64) { {10, 10, 10}, {11, 11, 11}, {12, 12, 12} }"
+        "vectorConstant = (uint32) { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10 }"
+        "structScalar-one         = (float64) 3.141592653 "
+        "structScalar-nested1-one = (float64) 2.718281828 "
+        "structScalar-nested1-two = (float64) 2.718281828 "
+        "structScalar-nested2-one = (float64) 1.414213562 "
+        "structScalar-nested2-two = (float64) 1.414213562 "
+        "vectorConstant2 = (float64) { 0, 1, 2, 3, 4, 5, 6, 7 }"
+        "matrixConstant2 = (float64) { {10, 10, 10, 10, 10, 10},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {12, 12, 12, 12, 12, 12}}"
+        "structMixed-one = (float64) 10 "
+        "structMixed-vec = (float64) { 0, 1, 2, 3, 4, 5, 6, 7 }"
+        "notFoundPar-mat = (uint32) { {10, 10, 10, 10, 10, 10},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {11, 11, 11, 11, 11, 11},"
+        "                              {12, 12, 12, 12, 12, 12}}";
+
+    // Test setup
+    bool ok = TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters);
+
+    return (ok != skipUnlinked);
+}
+
+
+bool SimulinkWrapperGAMTest::TestSetup_WithNestedSingleSignals() {
+
+    StreamString scriptCall = "createTestModel('hasStructSignals', true, 'modelComplexity', 5, 'hasInputs', false);";
+
+    StreamString skipUnlinkedParams = "1";
+
+    StreamString inputSignals = "";
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "Out1_ScalarDouble = {"
+        "    DataSource = DDB1"
+        "    Type = float64"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "Out2_ScalarUint32  = {"
+        "    DataSource = DDB1"
+        "    Type = uint32"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "Out3_VectorDouble  = {"
+        "    DataSource = Drv1"
+        "    Type = float64"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "Out4_VectorUint32  = {"
+        "    DataSource = Drv1"
+        "    Type = uint32"
+        "    NumberOfElements = 8"
+        "    NumberOfDimensions = 1"
+        "}"
+        "}";
+
+    StreamString parameters = "";
+
+    // Test setup
+    bool ok = TestSetupWithTemplate(scriptCall, skipUnlinkedParams, inputSignals, outputSignals, parameters, NULL, false, false);
+
+    return ok;
+}
+
+bool SimulinkWrapperGAMTest::TestSetup_StructTunableParametersFromExternalSource_Failed() {
+
+    StreamString scriptCall = "createTestModel('hasStructParams', true, 'hasTunableParams', true);";
+
+    StreamString skipUnlinkedParams = "0";
+
+    StreamString inputSignals = ""
+        "InputSignals = { "
+        "In1_ScalarDouble  = {"
+        "    DataSource = Drv1"
+        "    Type = float64"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "In2_ScalarUint32  = {"
+        "    DataSource = Drv1"
+        "    Type = uint32"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "}";
+
+
+    StreamString outputSignals = ""
+        "OutputSignals = { "
+        "Out1_ScalarDouble = {"
+        "    DataSource = DDB1"
+        "    Type = float64"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "Out2_ScalarUint32  = {"
+        "    DataSource = DDB1"
+        "    Type = uint32"
+        "    NumberOfElements = 1"
+        "    NumberOfDimensions = 0"
+        "}"
+        "}";
+
+    StreamString parameters = ""
+        "structScalar-nested1-one = (float64) 1 "
+        "structScalar-nested1-two = (float64) 1 "
+        "structScalar-nested2-one = (float64) 1 ";
+
+    StreamString modelName, modelFolder, modelFullPath;
+
+    // Create the test model
+    modelName = testEnvironment.CreateTestModel(scriptCall);
+
+    // Retrieve working directory from the test environment
+    modelFolder = testEnvironment.modelFolder;
+
+    // Compose model library full path
+    modelFullPath  = modelFolder;
+    modelFullPath += "/";
+    modelFullPath += modelName;
+    modelFullPath += ".so";
+
+    // Insert model name and build folder in the configuration buffer template
+    StreamString config;
+    config.Printf(configTemplate.Buffer(),
+                  modelFullPath.Buffer(),
+                  modelName.Buffer(),
+                  "ByteArray",
+                  "0",
+                  skipUnlinkedParams.Buffer(),
+                  inputSignals.Buffer(),
+                  outputSignals.Buffer(),
+                  parameters.Buffer()
+                 );
+
+    ConfigurationDatabase cdb;
+    StreamString configStream = config;
+    configStream.Seek(0);
+    StandardParser parser(configStream, cdb);
+
+    bool ok = parser.Parse();
+
+    ObjectRegistryDatabase *god = ObjectRegistryDatabase::Instance();
+
+    if (ok) {
+        god->Purge();
+        ok = god->Initialise(cdb);
+    }
+
+    // The GAM external source of parameters is expected to be a
+    // ReferenceContainer populated by AnyObject
+    if (ok) {
+
+        // Create the ReferenceContainer
+        ReferenceT<ReferenceContainer> cfgParameterContainer("ReferenceContainer", GlobalObjectsDatabase::Instance()->GetStandardHeap());
+        cfgParameterContainer->SetName("ExtSource");
+
+        ok = cfgParameterContainer.IsValid();
+
+        if (ok) {
+            ok = ObjectRegistryDatabase::Instance()->Insert(cfgParameterContainer);
+        }
+
+        // Populate with AnyObjects
+        float64 param1 = 1.0;
+        AnyType anyParam(param1);
+
+        ReferenceT<AnyObject> objParam1("AnyObject", GlobalObjectsDatabase::Instance()->GetStandardHeap());
+
+        anyParam.SetStaticDeclared(false);
+        objParam1->Serialise(anyParam);
+        objParam1->SetName("structScalar-nested2-two");
+        cfgParameterContainer->Insert(objParam1);
+
+        ReferenceT<AnyObject> objParam2("AnyObject", GlobalObjectsDatabase::Instance()->GetStandardHeap());
+        objParam2->Serialise(anyParam);
+        objParam2->SetName("structScalar-one");
+        cfgParameterContainer->Insert(objParam2);
+
+
+
+
+        // Verify that non-AnyObject references are ignored
+        ReferenceT<ReferenceContainer> refContainer("ReferenceContainer", GlobalObjectsDatabase::Instance()->GetStandardHeap());
+        refContainer->SetName("structScalar-nested2-one");
+        cfgParameterContainer->Insert(refContainer);
+
+
+
+    }
+
+    ReferenceT<RealTimeApplication> application;
+    if (ok) {
+        application = god->Find("Test");
+        ok = application.IsValid();
+    }
+    if (ok) {
+        ok = application->ConfigureApplication();
+    }
+
+    god->Purge();
+
+    return ok;
+}
+

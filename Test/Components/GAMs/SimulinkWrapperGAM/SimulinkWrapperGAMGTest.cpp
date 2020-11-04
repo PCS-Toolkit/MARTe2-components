@@ -40,6 +40,7 @@
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
 
+
 TEST(SimulinkWrapperGAMGTest, TestConstructor) {
     SimulinkWrapperGAMTest test;
     ASSERT_TRUE(test.TestConstructor());
@@ -63,6 +64,11 @@ TEST(SimulinkWrapperGAMGTest, TestInitialise_MissingTunableParamExternalSource) 
 TEST(SimulinkWrapperGAMGTest, TestInitialise_MissingParametersLeaf) {
     SimulinkWrapperGAMTest test;
     ASSERT_TRUE(test.TestInitialise_MissingParametersLeaf());
+}
+
+TEST(SimulinkWrapperGAMGTest, TestInitialise_Failed_WrongNonVirtualBusMode) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestInitialise_Failed_WrongNonVirtualBusMode());
 }
 
 TEST(SimulinkWrapperGAMGTest, TestInitialise_Failed_LoadLibrary) {
@@ -125,10 +131,11 @@ TEST(SimulinkWrapperGAMGTest, TestSetup_NoTunableParameters) {
     ASSERT_TRUE(test.TestSetup_NoTunableParameters());
 }
 
-TEST(SimulinkWrapperGAMGTest, TestSetup_SkipUnlinkedTunableParams) {
+TEST(SimulinkWrapperGAMGTest, TestSetup_SkipInvalidTunableParams) {
     SimulinkWrapperGAMTest test;
-    ASSERT_TRUE(test.TestSetup_SkipUnlinkedTunableParams());
+    ASSERT_TRUE(test.TestSetup_SkipInvalidTunableParams());
 }
+
 
 TEST(SimulinkWrapperGAMGTest, TestSetup_WithStructSignals) {
     SimulinkWrapperGAMTest test;
@@ -263,6 +270,51 @@ TEST(SimulinkWrapperGAMGTest, TestExecute) {
 TEST(SimulinkWrapperGAMGTest, TestPrintAlgoInfo) {
     SimulinkWrapperGAMTest test;
     ASSERT_TRUE(test.TestPrintAlgoInfo());
+}
+
+TEST(SimulinkWrapperGAMGTest, Test_StructuredSignals) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.Test_StructuredSignals());
+}
+
+TEST(SimulinkWrapperGAMGTest, Test_StructuredSignals_Failed) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.Test_StructuredSignals_Failed());
+}
+
+TEST(SimulinkWrapperGAMGTest, TestExecute_WithStructuredSignals) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestExecute_WithStructuredSignals());
+}
+
+TEST(SimulinkWrapperGAMGTest, Test_MultiMixedSignalsTranspose) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.Test_MultiMixedSignalsTranspose(true));
+}
+
+TEST(SimulinkWrapperGAMGTest, Test_MultiMixedSignalsNorm) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.Test_MultiMixedSignalsTranspose(false));
+}
+
+TEST(SimulinkWrapperGAMGTest, TestSetup_WithNotFoundParameterAndProcessUnlinked_Failed) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestSetup_WithNotFoundParameter_Failed(true));
+}
+
+TEST(SimulinkWrapperGAMGTest, TestSetup_WithNotFoundParameterAndSkipInvalid) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestSetup_WithNotFoundParameter_Failed(false));
+}
+
+TEST(SimulinkWrapperGAMGTest, TestSetup_WithNestedSingleSignals) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestSetup_WithNestedSingleSignals());
+}
+
+TEST(SimulinkWrapperGAMGTest, TestSetup_StructTunableParametersFromExternalSource_Failed) {
+    SimulinkWrapperGAMTest test;
+    ASSERT_TRUE(test.TestSetup_StructTunableParametersFromExternalSource_Failed());
 }
 
 /*---------------------------------------------------------------------------*/

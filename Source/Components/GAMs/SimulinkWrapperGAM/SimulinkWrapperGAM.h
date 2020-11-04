@@ -105,10 +105,11 @@ namespace MARTe {
  *     Library         = "modelFileName.so"                 // Compulsory
  *     SymbolPrefix    = "modelName"                        // Compulsory
  * 
- *     Verbosity                     = ( 0 | 1 | 2 )        // Optional. Default: 0
- *     SkipInvalidTunableParams      = ( 0 | 1 )            // Optional. Default: 1
- *     TunableParamExternalSource    = "ExternalSourceName" // Optional.
- *     StructuredSignalsAsByteArrays = ( 0 | 1 )            // Optional. Default: 1
+ *     Verbosity                   = ( 0 | 1 | 2 )                  // Optional. Default: 0
+ *     SkipInvalidTunableParams    = ( 0 | 1 )                      // Optional. Default: 1
+ *     EnforceModelSignalCoverage  = ( 0 | 1 )                      // Optional. Default: 1
+ *     TunableParamExternalSource  = "ExternalSourceName"           // Optional.
+ *     NonVirtualBusMode           = ( "ByteArray" | "Structured" ) // Optional. Default: "ByteArray"
  * 
  *     InputSignals  = {                                // As appropriate based on the Simulink(r) generated structure
  *         InSignal1 = {
@@ -180,9 +181,15 @@ namespace MARTe {
  *      parameters (see [Model parameters](#model-parameters) section
  *      for details). It must refer to a `MARTe::ReferenceContainer`
  *      containing references to `MARTe::AnyObject`s
- *    - *StructuredSignalsAsByteArrays*: treat model nonvirtual buses as a raw
- *      byte array of data. See [Structured signals](#structured-signals)
+ *    - *NonVirtualBusMode*: treat model nonvirtual buses as structured signals
+ *      or as a raw byte array of data. See [Structured signals](#structured-signals)
  *      section for details.
+ *    - *EnforceModelSignalCoverage*: Ensures that every port of the Simulink model
+ *      is connected to the GAM, eventually preventing the GAM startup.
+ *      Setting this option to `0` means that some of the model output signals
+ *      can be omitted in the configuration file.
+ *      Valid only when `NonVirtualBusMode == "Structured"`.
+ *      Default value: `1`.
  *    - *Parameters*: local list of parameters. See
  *      [Model parameters](#model-parameters) section for details.
  * 
@@ -192,6 +199,9 @@ namespace MARTe {
  * ============================================================================
  * 
  * The model behavior can be tuned by setting the values of block parameters.
+ * For information about setting model parameters as tunable see the
+ * [Model configuration](#model-configuration) section.
+ * 
  * Each block parameter can be:
  *   - a numeric value (*inlined parameter*), whose value is inlined in the
  *     code and cannot be modified at runtime
@@ -324,6 +334,8 @@ namespace MARTe {
  * the GAM input signals are received by the model, and the model
  * output signals are then received by the GAM. Thus, the model can
  * act as a custom MARTe component.
+ * For details about how to set up the model to correctly export signals to
+ * the GAM see the [Model configuration](#model-configuration) section. 
  * 
  * The GAM supports both array signals (scalar, vector, matrix)
  * and structured signals, i.e. signals whose content is a structure.
@@ -399,16 +411,13 @@ namespace MARTe {
  * A structured signal is a signal whose content is not an array
  * of data but a structure of arrays or even a structure of structures.
  * 
- * @note *Nonvirtual bus* and *structured signal* are used interchangeably
- *       in this documentation.
- * 
  * The GAM allows to manage nonvirtual bus inputs and outputs in two ways:
- *   1) *mapping to structures*: nonvirtual buses are mapped in a corresponding
+ *   1. *mapping to structured signals*: nonvirtual buses are mapped in a corresponding
  *      MARTe2 structured signals
- *   2) *mapping to byte arrays*: nonvirtual buses are raw-copied onto `uint8` arrays
+ *   2. *mapping to byte arrays*: nonvirtual buses are raw-copied onto `uint8` arrays
  *      of bytes
  * 
- * To select the requested mapping set the `StructuredSignalsAsByteArrays` option.
+ * To select the requested mapping set the `NonVirtualBusMode` option.
  * 
  * 
  * @warning The GAM cannot map nonvirtual buses whose last element is smaller
@@ -417,7 +426,7 @@ namespace MARTe {
  * 
  * ### Mapping nonvirtual buses into MARTe2 structured signals ###
  * 
- * Set `StructuredSignalsAsByteArrays = 0` to use this mode.
+ * Set `NonVirtualBusMode = "Structured"` to use this mode.
  * 
  * When this mode is selected, the GAM maps each element of the model
  * nonvirtual buses into an element of a MARTe2 structured signal. The configuration
@@ -429,22 +438,22 @@ namespace MARTe {
  * The explicit syntax is as follows:
  * 
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * OutputSignals = {                          // Works also for InputSignals
+ * OutputSignals = {                               // Works also for InputSignals
  *     BusSignal = {
- *         BusElement1 = {
+ *         BusElement1 = {                         // Vector (10 elements)
  *             Type               = uint32
  *             NumberOfDimensions = 1
  *             NumberOfElements   = 10
  *             DataSource = DDB1
  *         }
- *         BusElement2 = {                     // SubStruct
- *             SubElement1 = {
+ *         BusElementStruct = {                    // SubStruct
+ *             SubElement1 = {                     // Scalar
  *                 Type               = uint16
  *                 NumberOfDimensions = 0
  *                 NumberOfElements   = 1
  *                 DataSource = DDB2
  *             }
- *             SubElement2 = {
+ *             SubElement2 = {                     // Matrix (2x2)
  *                 Type               = float64
  *                 NumberOfDimensions = 2
  *                 NumberOfElements   = 4
@@ -455,7 +464,7 @@ namespace MARTe {
  * }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * 
- * Explicit syntax allows to send each element of the nunvirtual bus to a different
+ * Explicit syntax allows to send each element of the nonvirtual bus to a different
  * DataSource and also to select only some of the elements of the nonvirtual bus.
  * 
  * #### Previously declared structure ####
@@ -468,25 +477,22 @@ namespace MARTe {
  * +Types = {
  *     Class = ReferenceContainer
  * 
- *     +BusElementStruct = {
+ *     +BusElementStruct = {                       // SubStruct
  *         Class = IntrospectionStructure
- *         SubElement1 = {
+ *         SubElement1 = {                         // Scalar
  *             Type               = uint16
- *             NumberOfDimensions = 0
  *             NumberOfElements   = 1
  *         }
- *         SubElement2 = {
+ *         SubElement2 = {                         // Matrix (2x2)
  *             Type               = float64
- *             NumberOfDimensions = 2
- *             NumberOfElements   = 4
+ *             NumberOfElements   = {2, 2}
  *         }
  *     }
  * 
  *     +BusSignalStruct = {
  *         Class = IntrospectionStructure
- *         BusElement1 = {
+ *         BusElement1 = {                         // Vector (10 elements)
  *             Type               = uint32
- *             NumberOfDimensions = 1
  *             NumberOfElements   = 10
  *             DataSource = DDB1
  *         }
@@ -510,11 +516,17 @@ namespace MARTe {
  * 
  * This syntax allows easier management of the bus as a whole.
  * 
+ * @note The way signal dimensions are expressed is different when using
+ *       IntrospectionStructure: there is no `NumberOfDimensions` leaf and
+ *       in case of non-scalar signals `NumberOfElements` is an array
+ *       that on each n-th element has the dimension of the signal along
+ *       the n-th axis.
+ * 
  * ### Mapping nonvirtual buses into `uint8` byte arrays ###
  * 
- * Set `StructuredSignalsAsByteArrays = 1` to use this mode.
+ * Set `NonVirtualBusMode = "ByteArray"` to use this mode.
  * 
- * The structred signal must then be declared as a `uint8` array of bytes. The
+ * The structured signal must then be declared as a `uint8` array of bytes. The
  * same bus as above would then become:
  * 
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -522,7 +534,7 @@ namespace MARTe {
  *     BusSignal = {
  *         Type               = uint8
  *         NumberOfDimensions = 1
- *         NumberOfElements   = 74     // As many as the signal total bytesize
+ *         NumberOfElements   = 74     // As many as the signal total byte size
  *         DataSource = DDB1
  *     }
  * }
@@ -533,18 +545,66 @@ namespace MARTe {
  * Model configuration                                   {#model-configuration}
  * =============================================================================
  * 
- * In order to be compatible with the SimulinkWrapperGAM, the code generated
- * from the model must meet some requirements.
+ * This section shows how to set up the model so that is is compatible with the GAM.
  * 
+ * Configuration of input and output signals
+ * ----------------------------------------------------------------------------
+ * 
+ * In order to be compatible with the SimulinkWrapperGAM, the model must receive
+ * inputs from `Inport` blocks and send outputs to `Outport` blocks. The GAM
+ * will map MARTe2 I/O to Simulink I/O ports.
+ * 
+ * In order for a signal to be correctly linked to the GAM, *each input and
+ * output signal* must be named and *each input and output port* must display
+ * the signal name in its icon.
+ * - To name a signal, double click on the line representing the signal and
+ *   write the name on the textbox that appears
+ * - To display the signal name on the port, double click on the port and
+ *   in the `Block parameters` set the `Icon display` field to `Signal name`
+ * 
+ * ### Structured signal specific settings ###
+ * 
+ * In order to have a structured signal as model input/output the next steps
+ * must be followed:
+ * 
+ *   1. For *model outputs*:
+ *        - create a `Bus Creator` block and attach all required signals to it
+ *        - on the Block Parameters dialog of the bus creator set
+ *           Output data type to `Bus: <object name>`
+ *        - if a bus object has not yet been created for that signal, click on
+ *           `Edit` and create it
+ *        - on the Block Parameters dialog check `Output as nonvirtual` bus
+ *        - attach the Bus Creator output to an output port
+ *   2. For *model inputs*:
+ *        - create an `Input port` block
+ *        - on the Block Parameters dialog of the port set `Output data type`
+ *           to `Bus: <object name>`
+ *        - if a bus object has not yet been created for that signal, click on
+ *           `Edit` and create it
+ *        - on the Block Parameters dialog check `Output as nonvirtual bus`
+ *        - attach the port output to a `Bus Selector` block to use its elements
+ *           in the model.
+ * 
+ * Configuration of parameters
+ * ----------------------------------------------------------------------------
+ * 
+ * In order for parameters to be modifiable by the GAM, they shall be set to
+ * tunable in the model. To do that, go to `Model Setting > Code Generation >
+ * Optimization` and set `Default parameter behavior` to `Tunable`.
+ * To set the same option for each single parameter, click on `Configure...`
+ * in the same window.
+ * 
+ * The script that is shown below automatically sets all parameters to tunable. 
  * 
  * Code generation options
  * ----------------------------------------------------------------------------
  * 
+ * The code generated from the model must meet some requirements.
  * The following script can be used to setup a model for code generation with
  * the correct settings. Note that the `model_name` variable must be set in the
  * workspace before running the script and must match the name of an open model.
  * 
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.m}
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * % Solver
  * set_param(model_name, 'SolverType', 'Fixed-step');
  * 
@@ -563,13 +623,13 @@ namespace MARTe {
  * % Comments
  * set_param(model_name, 'GenerateComments', 0);
  * 
- * % Custom code
+ * % Custom code (MODEL is a coder keyword for the model name)
  * set_param(model_name, 'CustomSourceCode', ...
  *     [ ...
  *     '#define CONCAT(str1, str2, str3) CONCAT_(str1, str2, str3)'            newline, ...
  *     '#define CONCAT_(str1, str2, str3) str1 ## str2 ## str3'                newline, ...
- *     '#define GET_MMI_FUNC    CONCAT(THIS_MODEL_NAME, _GetCAPImmi    ,   )'  newline, ...
- *     '#define RT_MODEL_STRUCT CONCAT(RT_MODEL_      , THIS_MODEL_NAME, _T)', newline, ...
+ *     '#define GET_MMI_FUNC    CONCAT(MODEL     , _GetCAPImmi ,    )'         newline, ...
+ *     '#define RT_MODEL_STRUCT CONCAT(RT_MODEL_ , MODEL       , _T )'         newline, ...
  *                                                                             newline, ...
  *     'void* GET_MMI_FUNC(void* voidPtrToRealTimeStructure)'                  newline, ...
  *     '{'                                                                     newline, ...
@@ -578,7 +638,6 @@ namespace MARTe {
  *     '}' ...
  *     ] ...
  * );
- * set_param(model_name, 'CustomDefine', '-DTHIS_MODEL_NAME=$(PRODUCT_NAME)');
  * 
  * % Interface
  * set_param(model_name, 'SupportComplex',      0);
@@ -606,30 +665,6 @@ namespace MARTe {
  * Once set for a model, the configuration settings can then be exported
  * from the Model Explorer and imported to other models.
  * 
- * 
- * Structured signal specific settings    {#structured-signal-specific-settings}
- * ----------------------------------------------------------------------------
- * 
- * In order to have a structured signal as model input/output the next steps
- * must be followed:
- * 
- *   1. For *model outputs*:
- *        - create a `Bus Creator` block and attach all required signals to it
- *        - on the Block Parameters dialog of the bus creator set
- *           Output data type to `Bus: <object name>`
- *        - if a bus object has not yet been created for that signal, click on
- *           Edit and create it
- *        - on the Block Parameters dialog check Output as nonvirtual bus
- *        - attach the Bus Creator output to an output port
- *   2. For *model inputs*:
- *        - create an `Input port` block
- *        - on the Block Parameters dialog of the port set Output data type
- *           to `Bus: <object name>`
- *        - if a bus object has not yet been created for that signal, click on
- *           Edit and create it
- *        - on the Block Parameters dialog check Output as nonvirtual bus
- *        - attach the port output to a `Bus Selector` block to use its elements
- *           in the model.
  * 
  * @todo This class relies on pointer arithmetic for offset calculation.
  *       While it looks safe, it should probably be refactored to
@@ -807,6 +842,12 @@ private:
         SignalFromSignals,
         SignalFromElementMap
     };
+    
+    /**
+     * @brief Used internally to address the underlying copy mode for the ports/signals, in respect to
+     *        the "structure as byte array" behaviour
+     */
+    SimulinkNonVirtualBusMode nonVirtualBusMode;
 
     /**
      * @brief   Pointer to the current port being analyzed by ScanSignal().
@@ -967,7 +1008,12 @@ private:
         char8  gitLog[81];
         uint32 expCode;
     };
-    
+
+    /**
+     * @brief When enabled, all the Simulink model I/O must be matched to a GAM I/O
+     */
+    bool enforceModelSignalCoverage;
+
 };
 
 

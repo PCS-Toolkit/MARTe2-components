@@ -46,6 +46,7 @@
 #include "MemoryOperationsHelper.h"
 #include "ObjectRegistryDatabase.h"
 #include "RealTimeApplication.h"
+#include "SafeMath.h"
 #include "SimulinkWrapperGAM.h"
 #include "StandardParser.h"
 #include "StaticList.h"
@@ -108,7 +109,9 @@ public:
                                                    MARTe::StreamString inputSignals,
                                                    MARTe::StreamString outputSignals,
                                                    MARTe::StreamString parameters,
-                                                   MARTe::ObjectRegistryDatabase* objRegDatabase /* = NULL_PTR(ObjectRegistryDatabase*)*/
+                                                   MARTe::ObjectRegistryDatabase* objRegDatabase, /* = NULL_PTR(ObjectRegistryDatabase*)*/
+                                                   bool         structuredSignalsAsByteArrays, /* = true */
+                                                   bool         enforceModelSignalCoverage /*= false */
                                                    );
     
     /**
@@ -135,6 +138,11 @@ public:
      * @brief Tests the Initialise() method if SymbolPrefix setting is missing.
      */
     bool TestInitialise_Failed_MissingSymbolPrefix();
+    
+    /**
+     * @brief Tests the Initialise() method if NonVirtualBusMode is wrong.
+     */
+    bool TestInitialise_Failed_WrongNonVirtualBusMode();
     
     /**
      * @brief Tests the Initialise() method if the external .so cannot be loaded.
@@ -202,7 +210,7 @@ public:
     /**
      * @brief Tests the Setup() method when told to skip not ok tunable parameters.
      */
-    bool TestSetup_SkipUnlinkedTunableParams();
+    bool TestSetup_SkipInvalidTunableParams();
     
     /**
      * @brief Tests the Setup() method when there are no inputs.
@@ -345,6 +353,43 @@ public:
     bool TestPrintAlgoInfo();
     
     /**
+     * @brief Test the behaviour when working in pure structured signal mode
+     */
+    bool Test_StructuredSignals();
+
+
+    /**
+     * @brief Test execution and coherence when working in pure structured mode
+     */
+    bool TestExecute_WithStructuredSignals();
+
+
+    /**
+     * @brief Test execution and coherence when working with mixed signals and transposition takes place
+     */
+    bool Test_MultiMixedSignalsTranspose(bool transpose);
+
+    /**
+     * @brief Test the behaviour when working in pure structured signal mode, while enforcing
+     * MARTe2 - Simulink parameter coverage (1:1 mapping)
+     */
+    bool Test_StructuredSignals_Failed();
+
+
+    /**
+     * @brief Tests the behaviour when an unlinked parameter is not matched in the slx model
+     */
+    bool TestSetup_WithNotFoundParameter_Failed(bool skipUnlinked);
+
+
+    /**
+     * @brief Tests the setup of a model with nested signals
+     */
+    bool TestSetup_WithNestedSingleSignals();
+
+    bool TestSetup_StructTunableParametersFromExternalSource_Failed();
+
+    /**
      * @brief A general template for the GAM configuration.
      *        The template has printf-style spcifiers (`%s`) where
      *        specialization for each test is required (i.e. model name,
@@ -361,6 +406,8 @@ public:
         "            SymbolPrefix = \"%s\""
         "            Verbosity = 2"
         "            TunableParamExternalSource = ExtSource"
+        "            NonVirtualBusMode = %s"
+        "            EnforceModelSignalCoverage = %s"
         "            SkipInvalidTunableParams = %s"
         "               %s" // InputSignals
         "               %s" // OutputSignals
