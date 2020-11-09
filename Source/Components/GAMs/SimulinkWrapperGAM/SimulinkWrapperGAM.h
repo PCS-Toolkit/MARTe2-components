@@ -2,7 +2,10 @@
  * @file SimulinkWrapperGAM.h
  * @brief Header file for class SimulinkWrapperGAM
  * @date 14/03/2019
- * @author Bertrand Bauvir, Galperti Cristian
+ * @author Bertrand Bauvir
+ * @author Cristian Galperti 
+ * @author Nicolo Ferron 
+ * @author Giuseppe Avon
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -679,7 +682,14 @@ namespace MARTe {
  *       smaller in size with respect to the previous one, a padding
  *       is introduced. The size inconsistency is detected by the GAM and
  *       Setup() fails.
- *             
+ * 
+ * @todo Fix int64/uint64 issue: models with [u]int64 signals when compiled
+ *       export such signals as [u]fix64, which is currently incompatible
+ *       with the GAM.
+ * 
+ * @todo Develop a more efficient transposition algorithm for column-major
+ *       matrix signals. 
+ * 
  */
 class SimulinkWrapperGAM: public GAM, public MessageI {
 
