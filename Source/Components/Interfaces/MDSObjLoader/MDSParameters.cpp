@@ -25,12 +25,6 @@
 /*---------------------------------------------------------------------------*/
 #include "MDSParameters.h"
 
-#include <stdio.h>
-#include <memory>
-#include <iostream>
-#include <string>
-#include <cstdio>
-
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
 /*---------------------------------------------------------------------------*/
@@ -111,7 +105,6 @@ bool MDSParameter::Actualize(ConfigurationDatabase &targetcdb, MDSplus::Connecti
             }
         }
         expandedMDSPath += "]";
-        printf("dim: %s\n", expandedMDSPath.Buffer());
     }
     // Error
     else if ( targetDim != 0u && startIdx != 0u && stopIdx != 0u ) {
@@ -334,21 +327,16 @@ bool MDSParameter::Initialise(StructuredDataI &data) {
     
     /// 3. Read `Dim` if declared
     if (ret) {
-        bool targetDimDeclared = data.Read("Dim", targetDim);
-        if (targetDimDeclared) {
-            printf("DIM: %u\n", targetDim);
-        }
-        
+        data.Read("Dim", targetDim);
     }
     
     /// 4. Read `StartIdx` and `StopIdx` if declared
     if (ret) {
         bool startIdxDeclared = data.Read("StartIdx", startIdx);
         if (startIdxDeclared) {
-            if (data.Read("StopIdx", stopIdx)) {
-                printf("STARTIDX: %u, STOPIDX: %u\n", startIdx, stopIdx);
+            if (!data.Read("StopIdx", stopIdx)) {
+                REPORT_ERROR(ErrorManagement::Warning, "MDSParameter %s: declared StartIdx but not StopIdx, option ignored.", this->GetName());
             }
-            REPORT_ERROR(ErrorManagement::Warning, "MDSParameter %s: declared StartIdx but not StopIdx, option ignored.", this->GetName());
         }
         
     }
