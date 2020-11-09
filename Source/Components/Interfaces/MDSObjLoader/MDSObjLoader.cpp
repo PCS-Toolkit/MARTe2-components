@@ -41,23 +41,23 @@
 /*---------------------------------------------------------------------------*/
 
 
-/**
- * @brief Substitute char c in string source 
- */
-static MARTe::StreamString CharSubstitute(const MARTe::StreamString source, const MARTe::char8 orig, const MARTe::char8 rep) {
+///**
+ //* @brief Substitute char c in string source 
+ //*/
+//static MARTe::StreamString CharSubstitute(const MARTe::StreamString source, const MARTe::char8 orig, const MARTe::char8 rep) {
     
-    MARTe::StreamString destination = source;
+    //MARTe::StreamString destination = source;
     
-    MARTe::int32 charIdx = destination.Locate(orig);
+    //MARTe::int32 charIdx = destination.Locate(orig);
     
-    while (charIdx >= 0) {
-        MARTe::char8* buffer = destination.BufferReference();
-        buffer[charIdx] = rep;
-        charIdx = destination.Locate(orig);
-    }
+    //while (charIdx >= 0) {
+        //MARTe::char8* buffer = destination.BufferReference();
+        //buffer[charIdx] = rep;
+        //charIdx = destination.Locate(orig);
+    //}
     
-    return destination;
-} 
+    //return destination;
+//} 
 
 namespace MARTe {
 
@@ -179,17 +179,22 @@ bool MDSObjLoader::Initialise(StructuredDataI &data) {
                             // Also insert an AnyObject copy of this parameter at the root level of this ReferenceContainer
                             ReferenceT<AnyObject> paramObject("AnyObject", GlobalObjectsDatabase::Instance()->GetStandardHeap());
                             
-                            if (ret && paramObject.IsValid() && refPar->IsStaticDeclared()) {
+                            if (ret && paramObject.IsValid()) {
                                 
-                                ret = paramObject->Serialise(*(refPar.operator ->())); // required since we can't do Serialise(*refPar), * is not overloaded for ReferenceT
+                                if (refPar->IsStaticDeclared()) {
+                                    ret = paramObject->Serialise(*(refPar.operator ->())); // required since we can't do Serialise(*refPar), * is not overloaded for ReferenceT
+                                }
+                                else {
+                                    // If the source parameter is unlinked a placeholder AnyType is Serialised instead
+                                    AnyType unlinkedPar = AnyType(0u);
+                                    unlinkedPar.SetStaticDeclared(false);
+                                    
+                                    ret = paramObject->Serialise(unlinkedPar);
+                                }
                                 
                                 if (ret) {
-                                    
-                                    // Substitute - with .
-                                    StreamString subString = CharSubstitute(refPar->GetName(), '-', '.');
-                                    
-                                    paramObject->SetName(subString.Buffer());
-                                    Insert(paramObject);
+                                    paramObject->SetName(refPar->GetName());
+                                    ret = Insert(paramObject);
                                 }
                             }
                         

@@ -152,7 +152,7 @@ bool MDSParameter::Actualize(ConfigurationDatabase &targetcdb, MDSplus::Connecti
         }
     }
     else {
-        REPORT_ERROR(ErrorManagement::Warning, "Parameter %s unlinked, value not stored.", parameterName.Buffer());
+        REPORT_ERROR(ErrorManagement::Warning, "Parameter %s unlinked, no value stored.", parameterName.Buffer());
     }
     
     // More than 3 dimensions are not supported.
