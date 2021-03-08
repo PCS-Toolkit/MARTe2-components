@@ -1,8 +1,9 @@
 /**
  * @file EPICSPVGTest.cpp
  * @brief Source file for class EPICSPVGTest
- * @date 25/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSPVGTest (public, protected, and private). Be aware that some 
  * methods, such as those inline could be defined on the header file, instead.
@@ -24,8 +25,8 @@
 /*---------------------------------------------------------------------------*/
 /*                         Standard header includes                          */
 /*---------------------------------------------------------------------------*/
-#include <limits.h>
 #include "gtest/gtest.h"
+#include <limits.h>
 
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
@@ -134,6 +135,11 @@ TEST(EPICSPVGTest,TestInitialise_Event_Ignore) {
     ASSERT_TRUE(test.TestInitialise_Event_Ignore());
 }
 
+TEST(EPICSPVGTest,TestInitialise_Event_Message) {
+    EPICSPVTest test;
+    ASSERT_TRUE(test.TestInitialise_Event_Message());
+}
+
 TEST(EPICSPVGTest,TestInitialise_Event_False_PVValue) {
     EPICSPVTest test;
     ASSERT_TRUE(test.TestInitialise_Event_False_PVValue());
@@ -229,9 +235,9 @@ TEST(EPICSPVGTest,TestGetMode) {
     ASSERT_TRUE(test.TestGetMode());
 }
 
-TEST(EPICSPVGTest,TestGetTimeout) {
+TEST(EPICSPVGTest,TestGetCATimeout) {
     EPICSPVTest test;
-    ASSERT_TRUE(test.TestGetTimeout());
+    ASSERT_TRUE(test.TestGetCATimeout());
 }
 
 TEST(EPICSPVGTest,TestGetDestination) {
@@ -322,6 +328,21 @@ TEST(EPICSPVGTest,TestHandlePVEvent_Function_ParameterName_Int) {
 TEST(EPICSPVGTest,TestHandlePVEvent_Function_Ignore) {
     EPICSPVTest test;
     ASSERT_TRUE(test.TestHandlePVEvent_Function_Ignore());
+}
+
+TEST(EPICSPVGTest,TestHandlePVEvent_Function_Message) {
+    EPICSPVTest test;
+    ASSERT_TRUE(test.TestHandlePVEvent_Function_Message());
+}
+
+TEST(EPICSPVGTest,TestHandlePVEvent_Function_Message_PVName) {
+    EPICSPVTest test;
+    ASSERT_TRUE(test.TestHandlePVEvent_Function_Message_PVName());
+}
+
+TEST(EPICSPVGTest,TestHandlePVEvent_Function_Message_PVValue) {
+    EPICSPVTest test;
+    ASSERT_TRUE(test.TestHandlePVEvent_Function_Message_PVValue());
 }
 
 TEST(EPICSPVGTest,TestCAPut_UInt16) {

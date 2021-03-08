@@ -1,8 +1,9 @@
 /**
  * @file EPICSPV.h
  * @brief Header file for class EPICSPV
- * @date 23/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This header file contains the declaration of the class EPICSPV
  * with all of its public, protected and private members. It may also include
  * definitions for inline methods which need to be visible to the compiler.
@@ -28,6 +29,7 @@
 /*                        Standard header includes                           */
 /*---------------------------------------------------------------------------*/
 #include <cadef.h>
+
 /*---------------------------------------------------------------------------*/
 /*                        Project header includes                            */
 /*---------------------------------------------------------------------------*/
@@ -40,12 +42,20 @@
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
 namespace MARTe {
+
 /**
  * @brief Describes an EPICS PV.
  * @details This class wraps an EPICS PV, allowing to caput and caget values from it.
- * This class is capable of triggering Messages as a response to a PV value change. The new PV value can
- * either be: 1) the name of the Function to be called; 2) or an ID of a Function to be called (see FunctionMap);
- *  3) or the input parameter of a pre-defined Function to be called; or 4) or a pre-defined Function is to be called with no parameters (i.e. the PV value is to be ignored).
+ * This class is capable of triggering Messages as a response to a PV value change.
+ * The new PV value can either be: 
+ * <pre>
+ * 1) the name of the Function to be called;
+ * 2) or an ID of a Function to be called (see FunctionMap);
+ * 3) or the input parameter of a pre-defined Function to be called;
+ * 4) or a pre-defined Function is to be called with no parameters (i.e. the PV value is to be ignored);
+ * 5) or the PVValue is Message and the parameters inside Event = {} are ignored (a Message is added).
+ * </pre>
+ *
  * The configuration syntax is (names are only given as an example):
  *
  * <pre>
@@ -56,14 +66,26 @@ namespace MARTe {
  *   NumberOfElements = 1 //Optional. Number of elements
  *   Timeout = 5.0 //Optional but if set shall be > 0. The timeout for the ca_pend_io operations in seconds. Default value is 5.0 s.
  *   Event = { //Optional. Information about the message to be triggered every-time the EPICS PV value changes.
- *     Destination = StateMachine //Compulsory. Destination of the message.
- *     PVValue = Function //Compulsory. Can either be Function, Parameter or Ignore.
+ *      Destination = StateMachine //Compulsory. Destination of the message.
+ *      PVValue = Function //Compulsory. Can either be Function, Parameter or Ignore.
  *                        //If Function the PV value will be used as the name of the Function to call.
  *                        //If Parameter the PV value will be used as the parameter of the Function to call. This implies that the Function parameter must be set.
  *                        //If ParameterName the PV value will be used as the second parameter of the Function to call. The first parameter will the Object name. This implies that the Function parameter must be set.
  *                        //If Ignore, the PV value will not be used and the Function will always be called.
- *     Function = STOP //Compulsory if PVValue=Parameter, PVValue=ParameterName or PVValue=Ignore. Shall not be set if FunctionMap is defined or if PVValue=Function.
- *     FunctionMap = {{"1", "RUN"}, {"0", "STOP"}} //Optional Nx2 matrix. Only allowed if PVValue == Function. If defined then the PV value (first column of the matrix) will be used to map the Function name (second column of the matrix).
+ *      Function = STOP //Compulsory if PVValue=Parameter, PVValue=ParameterName or PVValue=Ignore. Shall not be set if FunctionMap is defined or if PVValue=Function.
+ *      FunctionMap = {{"1", "RUN"}, {"0", "STOP"}} //Optional Nx2 matrix. Only allowed if PVValue == Function. If defined then the PV value (first column of the matrix) will be used to map the Function name (second column of the matrix).
+ *   }
+ *   AMessage = {  //Only if the PVValue = Message
+ *      Class = Message
+ *      Destination = AnObject //Compulsory. Destination of the message.
+ *      Function = AFunction //Compulsory. The function at destination which handles the message.
+ *      Parameters = {"
+ *          Class = ConfigurationDatabase
+ *          param1 = THEPAR //If THEPAR the behaviour is the default.
+ *                          //If $PVName the param1 argument is automaticaly replaced by PV_1.
+ *          param2 = 12345  //If 12345 the behaviour is the default.
+ *                          //If $PVValue the param1 argument is automaticaly replaced by the value used in argument of HandlePVEvent call.
+ *      }
  *   }
  * }
  * </pre>
@@ -72,16 +94,16 @@ namespace MARTe {
  *
  * If the Event section is defined the Messages triggered will have the Function defined as above and the parameter (if set) will be written with the key "param1".
  */
-class EPICSPV: public Object, public MessageI {
+class EPICSPV: public ReferenceContainer, public MessageI {
 public:
     CLASS_REGISTER_DECLARATION()
 
     /**
      * @brief Constructor. Register the CAPut and CAGet function calls for RPC.
      * @post
-     *   GetTimeout() == 5.0
+     *   GetCATimeout() == 5.0
      */
-EPICSPV    ();
+    EPICSPV();
 
     /**
      * @brief Frees the FunctionMap memory if needed/
@@ -157,17 +179,17 @@ EPICSPV    ();
     /*lint ++flb*/
     union EventMode {
         /**
-         * Mode is not set
+         * Mode is not set.
          */
         BitBoolean<uint8, 0u> notSet;
 
         /**
-         * Value is to be used as the function name
+         * Value is to be used as the function name.
          */
         BitBoolean<uint8, 1u> function;
 
         /**
-         * Value is to be used as the function parameter
+         * Value is to be used as the function parameter.
          */
         BitBoolean<uint8, 2u> parameter;
 
@@ -177,17 +199,22 @@ EPICSPV    ();
         BitBoolean<uint8, 3u> parameterName;
 
         /**
-         * Value is to be ignored
+         * Value is to be ignored.
          */
         BitBoolean<uint8, 4u> ignore;
 
         /**
-         * Unmapped area
+         * Value is to be used as message.
          */
-        BitRange<uint8, 5u, 3u> unMapped;
+        BitBoolean<uint8, 5u> message;
 
         /**
-         * Output as uint16
+         * Unmapped area.
+         */
+        BitRange<uint8, 6u, 2u> unMapped;
+
+        /**
+         * Output as uint8.
          */
         uint8 asUint8;
     };
@@ -203,7 +230,7 @@ EPICSPV    ();
      * @brief Gets the ca_pend_io timeout.
      * @return the ca_pend_io timeout.
      */
-    float64 GetTimeout() const;
+    float64 GetCATimeout() const;
 
     /**
      * @brief Gets the event message destination.
@@ -260,6 +287,7 @@ EPICSPV    ();
     uint32 GetMemorySize() const;
 
 private:
+
     /**
      * @brief Triggers the sending of a Message with the rules defined in the class description.
      * @param[in] newValue the value to be sent (either as the Function name or the Function parameter).
@@ -327,24 +355,35 @@ private:
     void *pvMemory;
 
     /**
-     * The total memory size
+     * The total memory size.
      */
     uint32 memorySize;
 
     /**
-     * The type size
+     * The type size.
      */
     uint32 typeSize;
 
     /**
-     * The number of elements to set
+     * The number of elements to set.
      */
     uint32 numberOfElements;
 
     /**
-     * The EPICS PV AnyType representation
+     * The EPICS PV AnyType representation.
      */
     AnyType pvAnyType;
+
+    /**
+     * The EPICS PV Value to be changed when in a message.
+     */
+    uint64 changedPvVal;
+
+    /**
+     * The number of times HandlePVEvent was called.
+     */
+    uint8 handlePVEventNthTime;
+
 };
 
 }
@@ -354,4 +393,3 @@ private:
 /*---------------------------------------------------------------------------*/
 
 #endif /* EPICSPVCONTEXT_H_ */
-

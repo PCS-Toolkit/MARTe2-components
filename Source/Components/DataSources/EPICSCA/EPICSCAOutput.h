@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAOutput.h
  * @brief Header file for class EPICSCAOutput
- * @date 20/04/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This header file contains the declaration of the class EPICSCAOutput
  * with all of its public, protected and private members. It may also include
  * definitions for inline methods which need to be visible to the compiler.
@@ -36,6 +37,8 @@
 #include "EPICSCAInput.h"
 #include "EmbeddedServiceMethodBinderI.h"
 #include "EventSem.h"
+#include "FastPollingMutexSem.h"
+#include "MessageI.h"
 #include "SingleThreadService.h"
 
 /*---------------------------------------------------------------------------*/
@@ -68,18 +71,18 @@ namespace MARTe {
  *
  * </pre>
  */
-class EPICSCAOutput: public DataSourceI {
+class EPICSCAOutput: public DataSourceI, public MessageI {
 public:
     CLASS_REGISTER_DECLARATION()
 
     /**
      * @brief Default constructor. NOOP.
      */
-EPICSCAOutput    ();
+    EPICSCAOutput();
 
     /**
      * @brief Destructor.
-     * @details TODO.
+     * @details Calls the ca_clear_channel method on the pvs, calls Free on the pvs and delete on the signalFlag.
      */
     virtual ~EPICSCAOutput();
 
@@ -186,6 +189,13 @@ EPICSCAOutput    ();
      */
     bool IsIgnoringBufferOverrun() const;
 
+    /**
+     * @brief Asynchronous Channel Access Put.
+     * @details Performs the following EPICS calls: ca_create_channel and then, depending on pvType, 
+     * ca_put or ca_array_put. Occuring errors are reported using MARTe2 REPORT_ERROR facility.
+     * @return The error err if occurred in any of the described calls.
+     */
+    ErrorManagement::ErrorType AsyncCaPut(StreamString pvName, StreamString pvVal);
 
 private:
     /**
@@ -222,6 +232,12 @@ private:
      * If true no error will be triggered when the data cannot be consumed by the thread doing the caputs.
      */
     uint32 ignoreBufferOverrun;
+    
+    /**
+     * Flags to the signals.
+     */
+    uint8 *signalFlag;
+
 };
 }
 
@@ -229,5 +245,5 @@ private:
 /*                        Inline method definitions                          */
 /*---------------------------------------------------------------------------*/
 
-#endif /* EPICSCADATASOURCE_H_ */
+#endif /* EPICSCAOUTPUT_H_ */
 

@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAInputGTest.cpp
  * @brief Source file for class EPICSCAInputGTest
- * @date 21/04/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSCAInputGTest (public, protected, and private). Be aware that some 
  * methods, such as those inline could be defined on the header file, instead.
@@ -24,17 +25,17 @@
 /*---------------------------------------------------------------------------*/
 /*                         Standard header includes                          */
 /*---------------------------------------------------------------------------*/
+#include "gtest/gtest.h"
+#include <limits.h>
 
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
 /*---------------------------------------------------------------------------*/
-#include <limits.h>
-#include "gtest/gtest.h"
+#include "EPICSCAInputTest.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
-#include "EPICSCAInputTest.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Method definitions                              */

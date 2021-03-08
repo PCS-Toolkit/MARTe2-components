@@ -1,8 +1,9 @@
 /**
  * @file EPICSPVTest.h
  * @brief Header file for class EPICSPVTest
- * @date 25/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This header file contains the declaration of the class EPICSPVTest
  * with all of its public, protected and private members. It may also include
  * definitions for inline methods which need to be visible to the compiler.
@@ -27,8 +28,8 @@
 /*---------------------------------------------------------------------------*/
 /*                        Standard header includes                           */
 /*---------------------------------------------------------------------------*/
-#include "ConfigurationDatabase.h"
 #include "CLASSMETHODREGISTER.h"
+#include "ConfigurationDatabase.h"
 #include "EPICSPV.h"
 #include "ObjectRegistryDatabase.h"
 #include "RegisteredMethodsMessageFilter.h"
@@ -141,6 +142,11 @@ public:
      * @brief Tests the Initialise method with an Event and PVValue=Ignore.
      */
     bool TestInitialise_Event_Ignore();
+
+    /**
+     * @brief Tests the Initialise method with an Event and PVValue=Message.
+     */
+    bool TestInitialise_Event_Message();
 
     /**
      * @brief Tests the Initialise method with an Event and without specifying an invalid PVValue.
@@ -278,6 +284,21 @@ public:
     bool TestHandlePVEvent_Function_Ignore();
 
     /**
+     * @brief Tests the HandlePVEvent method calling a function in Message mode.
+     */
+    bool TestHandlePVEvent_Function_Message();
+
+    /**
+     * @brief Tests the HandlePVEvent method calling a function in Message mode, replacing PVName.
+     */
+    bool TestHandlePVEvent_Function_Message_PVName();
+
+    /**
+     * @brief Tests the HandlePVEvent method calling a function in Message mode, replacing PVValue.
+     */
+    bool TestHandlePVEvent_Function_Message_PVValue();
+
+    /**
      * @brief Tests the GetPVName method.
      */
     bool TestGetPVName();
@@ -313,9 +334,9 @@ public:
     bool TestGetMode();
 
     /**
-     * @brief Tests the GetTimeout method.
+     * @brief Tests the GetCATimeout method.
      */
-    bool TestGetTimeout();
+    bool TestGetCATimeout();
 
     /**
      * @brief Tests the GetDestination method.
@@ -751,6 +772,7 @@ public:
         if (!ret.ErrorsCleared()) {
             REPORT_ERROR(ErrorManagement::FatalError, "Failed to install message filters");
         }
+        messageReceived = false;
         int32Arr = new int32[10];
         strArr = new StreamString[10];
     }
@@ -758,6 +780,14 @@ public:
     virtual ~EPICSPVTestHelper() {
         delete [] int32Arr;
         delete [] strArr;
+    }
+
+    MARTe::ErrorManagement::ErrorType HandleMessage(MARTe::StreamString parameterNameIn, const MARTe::int32 newValue) {
+        using namespace MARTe;
+        messageReceived = true;
+        parameterName = parameterNameIn;
+        int32Value = newValue;
+        return MARTe::ErrorManagement::NoError;
     }
 
     MARTe::ErrorManagement::ErrorType HandleNoParameter() {
@@ -858,6 +888,7 @@ public:
     MARTe::StreamString stringValue;
     MARTe::StreamString parameterName;
     bool noParameterFunctionCalled;
+    bool messageReceived;
 };
 
 template<typename T>

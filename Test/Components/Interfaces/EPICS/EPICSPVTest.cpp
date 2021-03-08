@@ -1,8 +1,9 @@
 /**
  * @file EPICSPVTest.cpp
  * @brief Source file for class EPICSPVTest
- * @date 25/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSPVTest (public, protected, and private). Be aware that some 
  * methods, such as those inline could be defined on the header file, instead.
@@ -35,6 +36,7 @@
 /*---------------------------------------------------------------------------*/
 
 CLASS_REGISTER(EPICSPVTestHelper, "1.0")
+CLASS_METHOD_REGISTER(EPICSPVTestHelper, HandleMessage)
 CLASS_METHOD_REGISTER(EPICSPVTestHelper, HandleNoParameter)
 CLASS_METHOD_REGISTER(EPICSPVTestHelper, Handle_int16)
 CLASS_METHOD_REGISTER(EPICSPVTestHelper, Handle_uint16)
@@ -62,7 +64,7 @@ bool EPICSPVTest::TestConstructor() {
     ok &= (pv.GetPVName() == "");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_LONG);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -82,7 +84,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_UInt16() {
     ok &= (pv.GetPVName() == "PVONEU");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_SHORT);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == UnsignedInteger16Bit);
 
     return ok;
@@ -104,7 +106,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Int16() {
     ok &= (pv.GetPVName() == "PVONE");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_SHORT);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == SignedInteger16Bit);
 
     return ok;
@@ -126,7 +128,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_UInt32() {
     ok &= (pv.GetPVName() == "PVONEU");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_LONG);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == UnsignedInteger32Bit);
     return ok;
 }
@@ -147,7 +149,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Int32() {
     ok &= (pv.GetPVName() == "PVONE");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_LONG);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == SignedInteger32Bit);
     return ok;
 }
@@ -168,7 +170,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Float32() {
     ok &= (pv.GetPVName() == "PVONEF");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_FLOAT);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == Float32Bit);
     return ok;
 }
@@ -189,7 +191,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Float64() {
     ok &= (pv.GetPVName() == "PVONED");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_DOUBLE);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == Float64Bit);
     return ok;
 }
@@ -211,7 +213,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Array() {
     ok &= (pv.GetPVName() == "PVONED");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_DOUBLE);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == Float64Bit);
     ok &= (pv.GetAnyType().GetNumberOfElements(0u) == 101);
     ok &= (pv.GetAnyType().GetNumberOfDimensions() == 1);
@@ -234,7 +236,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_String() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -255,7 +257,7 @@ bool EPICSPVTest::TestInitialise_NoEvent_Timeout() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 3);
+    ok &= (pv.GetCATimeout() == 3);
     return ok;
 }
 
@@ -310,7 +312,7 @@ bool EPICSPVTest::TestInitialise_Event_Function() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -344,7 +346,7 @@ bool EPICSPVTest::TestInitialise_Event_FunctionMap() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -369,7 +371,7 @@ bool EPICSPVTest::TestInitialise_Event_Parameter() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -394,7 +396,7 @@ bool EPICSPVTest::TestInitialise_Event_ParameterName() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -419,7 +421,32 @@ bool EPICSPVTest::TestInitialise_Event_Ignore() {
     ok &= (pv.GetPVName() == "PVONES");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_STRING);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
+    return ok;
+}
+
+bool EPICSPVTest::TestInitialise_Event_Message() {
+    using namespace MARTe;
+    EPICSPV pv;
+    ConfigurationDatabase cdb;
+    cdb.Write("PVName", "PVONES");
+    cdb.Write("PVType", "string");
+    cdb.CreateRelative("Event");
+    cdb.Write("Destination", "AnObject");
+    cdb.Write("Function", "AFunction");
+    cdb.Write("PVValue", "Message");
+    cdb.MoveToRoot();
+
+    bool ok = (pv.Initialise(cdb));
+    ok &= (pv.GetContext() == NULL);
+    ok &= (pv.GetDestination() == "");
+    ok &= (pv.GetFunction() == "AFunction");
+    ok &= (pv.GetFunctionFromMap("ANYKEY") == "");
+    ok &= (pv.GetMode().message);
+    ok &= (pv.GetPVName() == "PVONES");
+    ok &= (pv.GetPVChid() == 0u);
+    ok &= (pv.GetPVType() == DBR_STRING);
+    ok &= (pv.GetCATimeout() == 5.0);
     return ok;
 }
 
@@ -654,7 +681,7 @@ bool EPICSPVTest::TestGetMode() {
     return TestInitialise_Event_Function();
 }
 
-bool EPICSPVTest::TestGetTimeout() {
+bool EPICSPVTest::TestGetCATimeout() {
     return TestInitialise_NoEvent_Timeout();
 }
 
@@ -1199,6 +1226,202 @@ bool EPICSPVTest::TestHandlePVEvent_Function_Ignore() {
     return ok;
 }
 
+bool EPICSPVTest::TestHandlePVEvent_Function_Message() {
+    using namespace MARTe;
+    EPICSPV pv;
+    StreamString config = ""
+            "+PV_1 = {"
+            "    Class = EPICSPV"
+            "    PVName = PVS::PV1"
+            "    PVType = int32"
+            "    Event = {"
+            "        PVValue = Message"
+            "    }"
+            "    +AMessage = {"
+            "        Class = Message"
+            "        Destination = AnObject"
+            "        Function = HandleMessage"
+            "        +Parameters = {"
+            "            Class = ConfigurationDatabase"
+            "            param1 = APARAM"
+            "            param2 = 777"
+            "        }"
+            "    }"
+            "}"
+            "+AnObject = {"
+            "    Class = EPICSPVTestHelper"
+            "}";
+
+    config.Seek(0LLU);
+    ConfigurationDatabase cdb;
+    StandardParser parser(config, cdb, NULL);
+    bool ok = parser.Parse();
+    cdb.MoveToRoot();
+    ObjectRegistryDatabase *ord = ObjectRegistryDatabase::Instance();
+    ReferenceT<EPICSPVTestHelper> anObject;
+    ReferenceT<EPICSPV> aPV;
+    if (ok) {
+        ok = ord->Initialise(cdb);
+    }
+    if (ok) {
+        aPV = ord->Find("PV_1");
+        ok = aPV.IsValid();
+    }
+    if (ok) {
+        anObject = ord->Find("AnObject");
+        ok = anObject.IsValid();
+    }
+    if (ok) {
+        int32 value = 7;
+        struct event_handler_args args;
+        args.dbr = reinterpret_cast<const void *>(&value);
+        args.count = 1;
+        aPV->HandlePVEvent(args);
+        //Call twice to trigger change
+        aPV->HandlePVEvent(args);
+        ok = (anObject->messageReceived);
+        if (ok) {
+            ok = (anObject->parameterName == "APARAM");
+        }
+        if (ok) {
+            ok = (anObject->int32Value == 777);
+        }
+    }
+    ord->Purge();
+    return ok;
+}
+
+bool EPICSPVTest::TestHandlePVEvent_Function_Message_PVName() {
+    using namespace MARTe;
+    EPICSPV pv;
+    StreamString config = ""
+            "+PV_1 = {"
+            "    Class = EPICSPV"
+            "    PVName = PVS::PV1"
+            "    PVType = int32"
+            "    Event = {"
+            "        PVValue = Message"
+            "    }"
+            "    +AMessage = {"
+            "        Class = Message"
+            "        Destination = AnObject"
+            "        Function = HandleMessage"
+            "        +Parameters = {"
+            "            Class = ConfigurationDatabase"
+            "            param1 = $PVName"
+            "            param2 = 777"
+            "        }"
+            "    }"
+            "}"
+            "+AnObject = {"
+            "    Class = EPICSPVTestHelper"
+            "}";
+
+    config.Seek(0LLU);
+    ConfigurationDatabase cdb;
+    StandardParser parser(config, cdb, NULL);
+    bool ok = parser.Parse();
+    cdb.MoveToRoot();
+    ObjectRegistryDatabase *ord = ObjectRegistryDatabase::Instance();
+    ReferenceT<EPICSPVTestHelper> anObject;
+    ReferenceT<EPICSPV> aPV;
+    if (ok) {
+        ok = ord->Initialise(cdb);
+    }
+    if (ok) {
+        aPV = ord->Find("PV_1");
+        ok = aPV.IsValid();
+    }
+    if (ok) {
+        anObject = ord->Find("AnObject");
+        ok = anObject.IsValid();
+    }
+    if (ok) {
+        int32 value = 7;
+        struct event_handler_args args;
+        args.dbr = reinterpret_cast<const void *>(&value);
+        args.count = 1;
+        aPV->HandlePVEvent(args);
+        //Call twice to trigger change
+        aPV->HandlePVEvent(args);
+        ok = (anObject->messageReceived);
+        if (ok) {
+            ok = (anObject->parameterName == "PV_1");
+        }
+        if (ok) {
+            ok = (anObject->int32Value == 777);
+        }
+    }
+    ord->Purge();
+    return ok;
+}
+
+bool EPICSPVTest::TestHandlePVEvent_Function_Message_PVValue() {
+    using namespace MARTe;
+    EPICSPV pv;
+    StreamString config = ""
+            "+PV_1 = {"
+            "    Class = EPICSPV"
+            "    PVName = PVS::PV1"
+            "    PVType = int32"
+            "    Event = {"
+            "        PVValue = Message"
+            "    }"
+            "    +AMessage = {"
+            "        Class = Message"
+            "        Destination = AnObject"
+            "        Function = HandleMessage"
+            "        +Parameters = {"
+            "            Class = ConfigurationDatabase"
+            "            param1 = APARAM"
+            "            param2 = $PVValue"
+            "        }"
+            "    }"
+            "}"
+            "+AnObject = {"
+            "    Class = EPICSPVTestHelper"
+            "}";
+
+    config.Seek(0LLU);
+    ConfigurationDatabase cdb;
+    StandardParser parser(config, cdb, NULL);
+    bool ok = parser.Parse();
+    cdb.MoveToRoot();
+    ObjectRegistryDatabase *ord = ObjectRegistryDatabase::Instance();
+    ReferenceT<EPICSPVTestHelper> anObject;
+    ReferenceT<EPICSPV> aPV;
+    if (ok) {
+        ok = ord->Initialise(cdb);
+    }
+    if (ok) {
+        aPV = ord->Find("PV_1");
+        ok = aPV.IsValid();
+    }
+    if (ok) {
+        anObject = ord->Find("AnObject");
+        ok = anObject.IsValid();
+    }
+    if (ok) {
+        int32 value = 7;
+        struct event_handler_args args;
+        args.dbr = reinterpret_cast<const void *>(&value);
+        args.count = 1;
+        aPV->HandlePVEvent(args);
+        //Call twice more to trigger change
+        aPV->HandlePVEvent(args);
+        aPV->HandlePVEvent(args);
+        ok = (anObject->messageReceived);
+        if (ok) {
+            ok = (anObject->parameterName == "APARAM");
+        }
+        if (ok) {
+            ok = (anObject->int32Value == value);
+        }
+    }
+    ord->Purge();
+    return ok;
+}
+
 bool EPICSPVTest::TestCAPut_Int16() {
     using namespace MARTe;
     int16 testValue = -7;
@@ -1412,7 +1635,7 @@ bool EPICSPVTest::TestGetAnyType() {
     ok &= (pv.GetPVName() == "PVONED");
     ok &= (pv.GetPVChid() == 0u);
     ok &= (pv.GetPVType() == DBR_DOUBLE);
-    ok &= (pv.GetTimeout() == 5.0);
+    ok &= (pv.GetCATimeout() == 5.0);
     ok &= (pv.GetAnyType().GetTypeDescriptor() == Float64Bit);
     return ok;
 }

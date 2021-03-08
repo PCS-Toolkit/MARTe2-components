@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAClient.cpp
  * @brief Source file for class EPICSCAClient
- * @date 23/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSCAClient (public, protected, and private). Be aware that some
  * methods, such as those inline could be defined on the header file, instead.
@@ -38,7 +39,6 @@
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
-
 namespace MARTe {
 
 /**
@@ -206,4 +206,3 @@ uint32 EPICSCAClient::GetCPUMask() const {
 CLASS_REGISTER(EPICSCAClient, "1.0")
 CLASS_METHOD_REGISTER(EPICSCAClient, Start)
 }
-

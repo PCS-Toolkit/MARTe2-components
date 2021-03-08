@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAClient.h
  * @brief Header file for class EPICSCAClient
- * @date 23/03/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This header file contains the declaration of the class EPICSCAClient
  * with all of its public, protected and private members. It may also include
  * definitions for inline methods which need to be visible to the compiler.
@@ -43,8 +44,8 @@
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
-
 namespace MARTe {
+
 /**
  * @brief A container of EPICSPV variables. Provides the threading context for the EPICS CA interface.
  * @details The configuration syntax is (names are only given as an example):
@@ -69,10 +70,11 @@ namespace MARTe {
 class EPICSCAClient: public ReferenceContainer, public EmbeddedServiceMethodBinderI, public MessageI {
 public:
     CLASS_REGISTER_DECLARATION()
+
     /**
      * @brief Constructor. NOOP.
      */
-EPICSCAClient    ();
+    EPICSCAClient();
 
     /**
      * @brief Destructor. Stops the embedded thread.
@@ -130,6 +132,7 @@ EPICSCAClient    ();
      * @return ErrorManagement::NoError if the service wasn't already started.
      */
     ErrorManagement::ErrorType Start();
+
 private:
 
     /**
@@ -148,6 +151,7 @@ private:
     uint32 stackSize;
 
 };
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -155,4 +159,3 @@ private:
 /*---------------------------------------------------------------------------*/
 
 #endif /* EPICSCACLIENT_H_ */
-

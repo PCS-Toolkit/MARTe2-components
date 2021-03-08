@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAOutputTest.cpp
  * @brief Source file for class EPICSCAOutputTest
- * @date 21/04/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSCAOutputTest (public, protected, and private). Be aware that some
  * methods, such as those inline could be defined on the header file, instead.
@@ -138,7 +139,7 @@ public:
 
     CLASS_REGISTER_DECLARATION()
 
-EPICSCAOutputSchedulerTestHelper    () : MARTe::GAMSchedulerI() {
+    EPICSCAOutputSchedulerTestHelper () : MARTe::GAMSchedulerI() {
         scheduledStates = NULL;
     }
 
@@ -1162,6 +1163,166 @@ bool EPICSCAOutputTest::TestGetNumberOfBuffers() {
 
 bool EPICSCAOutputTest::TestIsIgnoringBufferOverrun() {
     return TestInitialise();
+}
+
+bool EPICSCAOutputTest::TestAsyncCaPut() {
+    using namespace MARTe;
+    ConfigurationDatabase cdb;
+    StreamString err;
+    ObjectRegistryDatabase *godb;
+    ReferenceT<RealTimeApplication> application;
+    ReferenceT<EPICSCAOutputSchedulerTestHelper> scheduler;
+    ReferenceT<EPICSCAOutput> testData;
+    StreamString returnedValue;
+
+    const uint32 numberOfPVs = 10;
+    StreamString pvName [numberOfPVs] = { "MARTe2::EPICSCAInput::Test::Char8", "MARTe2::EPICSCAInput::Test::String",
+            "MARTe2::EPICSCAInput::Test::UInt8", "MARTe2::EPICSCAInput::Test::Int8", "MARTe2::EPICSCAInput::Test::UInt16",
+            "MARTe2::EPICSCAInput::Test::Int16", "MARTe2::EPICSCAInput::Test::UInt32", "MARTe2::EPICSCAInput::Test::Int32",
+            "MARTe2::EPICSCAInput::Test::Float32", "MARTe2::EPICSCAInput::Test::Float64" };
+    StreamString pvValue [numberOfPVs] = { "F", "SECOND",
+            "128", "-64", "32768",
+            "-16384", "2147483648", "-1073741824",
+            "-1.2E+8", "-1.2E+16" };
+    chtype pvTypes[numberOfPVs] = { DBR_STRING, DBR_STRING,
+            DBR_CHAR, DBR_CHAR, DBR_SHORT,
+            DBR_SHORT, DBR_LONG, DBR_LONG,
+            DBR_FLOAT, DBR_DOUBLE };
+    chid pvChids[numberOfPVs];
+    char8 char8Value[40];
+    char8 stringValue[40];
+    uint8 uint8Value = 0;
+    int8 int8Value = 0;
+    uint16 uint16Value = 0;
+    int16 int16Value = 0;
+    uint32 uint32Value = 0;
+    int32 int32Value = 0;
+    float32 float32Value = 0;
+    float64 float64Value = 0;
+    void *pvMemory[numberOfPVs] = { &char8Value[0], &stringValue[0],
+            &uint8Value, &int8Value, &uint16Value,
+            &int16Value, &uint32Value, &int32Value,
+            &float32Value, &float64Value };
+
+    StreamString configStream = config1;
+    configStream.Seek(0);
+    StandardParser parser(configStream, cdb, &err);
+
+    bool ok = parser.Parse();
+    if (!ok) {
+        REPORT_ERROR_STATIC(ErrorManagement::FatalError, "%s", err.Buffer());
+    }
+    godb = ObjectRegistryDatabase::Instance();
+    if (ok) {
+        godb->Purge();
+        ok = godb->Initialise(cdb);
+    }
+    if (ok) {
+        application = godb->Find("Test");
+        ok = application.IsValid();
+    }
+    if (ok) {
+        ok = application->ConfigureApplication();
+    }
+    if (ok) {
+        scheduler = godb->Find("Test.Scheduler");
+        ok = scheduler.IsValid();
+    }
+    if (ok) {
+        testData = godb->Find("Test.Data.EPICSCAOutputTest");
+        ok = testData.IsValid();
+    }
+    if (ok) {
+        ok = application->PrepareNextState("State1");
+    }
+    if (ok) {
+        ok = application->StartNextStateExecution();
+    }
+    if (ok) {
+        ok = (ca_context_create(ca_enable_preemptive_callback));
+    }
+    if (ok) {
+        scheduler->ExecuteThreadCycle(0);
+        //AsyncCaPut
+        for (uint32 idx = 0u; idx < numberOfPVs; idx++) {
+            if (ok) {
+                Sleep::Sec(0.1);
+                ok = (testData->AsyncCaPut(pvName[idx], pvValue[idx]) ==  ErrorManagement::NoError);
+                REPORT_ERROR_STATIC(ErrorManagement::Information, "AsyncCaPut(%s, %s) %s", pvName[idx].Buffer(), 
+                    pvValue[idx].Buffer(), (ok) ? "OK" : "ERROR");
+                Sleep::Sec(0.1);
+            }
+        }
+        //Check the values
+        if (ok) {
+            for (uint32 idx = 0u; idx < numberOfPVs; idx++) {
+                if (ok) {
+                    ok = (ca_create_channel(pvName[idx].Buffer(), NULL_PTR(caCh *), NULL_PTR(void *), 20u, &pvChids[idx]) == ECA_NORMAL);
+                    Sleep::Sec(0.1);
+                }
+                if (ok) {
+                    ok = (ca_get(pvTypes[idx], pvChids[idx], pvMemory[idx]) == ECA_NORMAL);
+                }
+                if (ok) {
+                    (void) ca_pend_io(1.0);
+                    Sleep::Sec(0.1);
+                }
+                if (ok) {
+                    returnedValue.Seek(0ul);
+                    returnedValue.SetSize(0ul);
+                    switch (idx) {
+                        case 0 :
+                            returnedValue.Printf("%!", char8Value);
+                            break;
+                        case 1 :
+                            returnedValue.Printf("%!", stringValue);
+                            break;
+                        case 2 :
+                            returnedValue.Printf("%!", uint8Value);
+                            break;
+                        case 3 :
+                            returnedValue.Printf("%!", int8Value);
+                            break;
+                        case 4 :
+                            returnedValue.Printf("%!", uint16Value);
+                            break;
+                        case 5 :
+                            returnedValue.Printf("%!", int16Value);
+                            break;
+                        case 6 :
+                            returnedValue.Printf("%!", uint32Value);
+                            break;
+                        case 7 :
+                            returnedValue.Printf("%!", int32Value);
+                            break;
+                        case 8 :
+                            returnedValue.Printf("%.2e", float32Value);
+                            break;
+                        case 9 :
+                            returnedValue.Printf("%.2e", float64Value);
+                            break;
+                        default:
+                            returnedValue.Printf("%!", stringValue);
+                    }
+                    ok = ( pvValue[idx] == returnedValue);
+                    REPORT_ERROR_STATIC(ErrorManagement::Information, "ca_get(%s) = %s, match %s ", pvName[idx].Buffer(),
+                        returnedValue.Buffer(), (ok) ? "OK" : "ERROR" );
+                }
+            }
+        }
+    }
+    if (ok) {
+        ok = application->StopCurrentStateExecution();
+    }
+    if (ok) {
+        for (uint32 idx = 0u; idx < numberOfPVs; idx++) {
+            ca_clear_channel(pvChids[idx]);
+        }
+    }
+    ca_detach_context();
+    ca_context_destroy();
+    godb->Purge();
+    return ok;
 }
 
 bool EPICSCAOutputTest::TestExecute() {

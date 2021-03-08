@@ -1,8 +1,9 @@
 /**
  * @file EPICSCAInput.cpp
  * @brief Source file for class EPICSCAInput
- * @date 20/04/2017
+ * @date 04/02/2021
  * @author Andre Neto
+ * @author Pedro Lourenco
  *
  * @copyright Copyright 2015 F4E | European Joint Undertaking for ITER and
  * the Development of Fusion Energy ('Fusion for Energy').
@@ -15,7 +16,7 @@
  * software distributed under the Licence is distributed on an "AS IS"
  * basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the Licence permissions and limitations under the Licence.
-
+ *
  * @details This source file contains the definition of all the methods for
  * the class EPICSCAInput (public, protected, and private). Be aware that some
  * methods, such as those inline could be defined on the header file, instead.
@@ -24,12 +25,12 @@
 /*---------------------------------------------------------------------------*/
 /*                         Standard header includes                          */
 /*---------------------------------------------------------------------------*/
-#include "EPICSCAInput.h"
 
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
 /*---------------------------------------------------------------------------*/
 #include "AdvancedErrorManagement.h"
+#include "EPICSCAInput.h"
 #include "MemoryMapInputBroker.h"
 
 /*---------------------------------------------------------------------------*/
@@ -177,6 +178,7 @@ bool EPICSCAInput::SetConfiguredDatabase(StructuredDataI & data) {
             }
             TypeDescriptor td = GetSignalType(n);
             if (ok) {
+                pvs[n].td = td;
                 (void) StringHelper::CopyN(&pvs[n].pvName[0], pvName.Buffer(), PV_NAME_MAX_SIZE);
                 if (td == CharString) {
                     pvs[n].pvType = DBR_STRING;
