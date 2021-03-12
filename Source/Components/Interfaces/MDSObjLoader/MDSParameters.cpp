@@ -164,8 +164,14 @@ bool MDSParameter::Actualize(ConfigurationDatabase &targetcdb, MDSplus::Connecti
     if (this->IsStaticDeclared() && ok) {
         
         this->SetNumberOfDimensions(MDSNumOfDims);
+
         for (uint16 dimIdx = 0u; dimIdx < MDSNumOfDims; dimIdx++) {
-            this->SetNumberOfElements(dimIdx, MDSDimArray[dimIdx]);
+            if (MDSNumOfDims < 2) {
+                this->SetNumberOfElements(dimIdx, MDSDimArray[dimIdx]);
+            }
+            else {
+                this->SetNumberOfElements(dimIdx, MDSDimArray[MDSNumOfDims - dimIdx - 1]);
+            }
         }
         
         if (MDSDataType == 2u) {
