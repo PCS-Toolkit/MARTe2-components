@@ -122,7 +122,8 @@ namespace MARTe
      * - **MDSParameter**
      *    - *Path*: MDS+ path to the node. The format is "\\TREENAME::TOP:PATH_TO_NODE".
      *    - *DataOrientation*: Only for nodes which contain 2D matrices. It sets the way to linealize the 
-     *          data in memory. Its valid values are "RowMajor" or "ColumnMajor".
+     *          data in memory. Its valid values are "RowMajor" or "ColumnMajor". If not set, the default value 
+     *          is "ColumnMajor".
      *    - *Dim*: ????
      *    - *StartIdx*: ????
      *    - *StopIdx*: ????

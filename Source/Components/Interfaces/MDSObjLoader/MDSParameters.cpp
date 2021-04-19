@@ -185,14 +185,16 @@ namespace MARTe
 
             for (uint16 dimIdx = 0u; dimIdx < MDSNumOfDims; dimIdx++)
             {
-                if (MDSNumOfDims < 2)
-                {
-                    this->SetNumberOfElements(dimIdx, MDSDimArray[dimIdx]);
-                }
-                else
+                // SPECIAL CASE: In Thin Client, matrices dimensions are read inverted from MDS+ API.
+                if ((MDSNumOfDims >= 2) && (clienttype == MDSClientType_Thin))
                 {
                     this->SetNumberOfElements(dimIdx, MDSDimArray[MDSNumOfDims - dimIdx - 1]);
                 }
+                else
+                {
+                    this->SetNumberOfElements(dimIdx, MDSDimArray[dimIdx]);
+                }
+
             }
 
             if (MDSDataType == 2u)
