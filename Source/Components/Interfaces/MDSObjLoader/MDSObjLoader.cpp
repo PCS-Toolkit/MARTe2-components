@@ -32,6 +32,7 @@
 #include <mdsobjects.h>
 
 #include <StreamString.h>
+#include "MDSClientsTypes.h"
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
@@ -40,186 +41,170 @@
 /*                           Method definitions                              */
 /*---------------------------------------------------------------------------*/
 
+namespace MARTe
+{
 
-///**
- //* @brief Substitute char c in string source 
- //*/
-//static MARTe::StreamString CharSubstitute(const MARTe::StreamString source, const MARTe::char8 orig, const MARTe::char8 rep) {
-    
-    //MARTe::StreamString destination = source;
-    
-    //MARTe::int32 charIdx = destination.Locate(orig);
-    
-    //while (charIdx >= 0) {
-        //MARTe::char8* buffer = destination.BufferReference();
-        //buffer[charIdx] = rep;
-        //charIdx = destination.Locate(orig);
-    //}
-    
-    //return destination;
-//} 
-
-namespace MARTe {
-
-
-MDSObjLoader::MDSObjLoader() :
-        ParObjLoader() {
-    shot = 0;
-}
-
-MDSObjLoader::~MDSObjLoader() {
-}
-
-bool MDSObjLoader::Initialise(StructuredDataI &data) {
-    MDSplus::Tree *currenttree;
-    MDSplus::Connection *currentconnection;
-    MDSplus::Data *nodeData;
-
-    StreamString basename = this->GetName();
-    bool ret = ParObjLoader::Initialise(data);
-
-
-
-    //printf("MDSObjLoader Initialise called, ReferenceContainer size: %d\n", Size());
-
-    if(ret)
+    MDSObjLoader::MDSObjLoader() : ParObjLoader()
     {
-        ret=data.Read("Shot", shot);
-        if(!ret)
-        {
-            REPORT_ERROR(ErrorManagement::ParametersError, "Shot not set");
-        }
+        hasglobalshot = false;
     }
 
-    if(ret){
-         
-         // Loop over all the children of this node (which are supposed to be MDSObjConnection objects)
-         for(uint32 i=0; i<Size(); i++){
-            
-            // Get a reference to the i-th child
-            ReferenceT<MDSObjConnection> ref = Get(i);
-            
-            if (!ref.IsValid()) {
-                
-                // MDSObjLoader populates itself with AnyObjects, so references to AnyObject are ignored (no warning issued).
-                ReferenceT<AnyObject> objRef = Get(i);
-                if (!objRef.IsValid()) {
-                    REPORT_ERROR(ErrorManagement::InitialisationError, "Node %u is of incompatible class. Invalid reference.", i);
-                }
+    MDSObjLoader::~MDSObjLoader()
+    {
+    }
+
+    bool MDSObjLoader::Initialise(StructuredDataI &data)
+    {
+        MDSplus::Tree *currenttree;
+        MDSplus::Connection *currentconnection;
+
+        StreamString basename = this->GetName();
+        bool status = ParObjLoader::Initialise(data);
+
+        if (status)
+        {
+            // Read "Shot" parameter, which will set up the shot for all the MDSObjConnection objects if they don't define it
+            if (data.Read("Shot", shot))
+            {
+                hasglobalshot = true;
             }
-            
-            if (ref.IsValid()) {
-            
-                // If the connection has a local shot defined, override the one defined in the MDSObjLoader main object
-                int32 shottoopen;
-                if(ref->hasLocalShot()) shottoopen = ref->getLocalShot(); else shottoopen = shot;
 
-                //printf("Here we should connect to MDS %s::%s, shot %d\n", ref->getServer().Buffer(), ref->getTree().Buffer(),shot);
-                REPORT_ERROR(ErrorManagement::Information, "%s connecting to server: %s, tree: %s, shot: %d", this->GetName(), ref->getServer().Buffer(), ref->getTree().Buffer(), shottoopen);
+            // Loop over all the children of this node (which are supposed to be MDSObjConnection objects)
+            for (uint32 i = 0; i < Size(); i++)
+            {
+                // Get a reference to the i-th child
+                ReferenceT<MDSObjConnection> ref = Get(i);
 
-                try{
-                    //mdsi.OpenTree(ref->getTree().Buffer(), shottoopen);
-
-                    // Distributed client implementation, not suitable for us since
-                    // we have remote TDI and Signals evaluation even in the parameters
-                    //currenttree = new MDSplus::Tree(ref->getTree().Buffer(), shottoopen, "NORMAL");
-                    currenttree = NULL;
-
-                    // This client implementation, this is the corret way to replicate mdsvalue matlab command
-                    currentconnection = new MDSplus::Connection((char *)(ref->getServer().Buffer()));
-
-
-
-                    currentconnection->openTree((char *)(ref->getTree().Buffer()), (int)shottoopen);
-
-
-                    //currentconnection = NULL;
-                    /*
-                    Data *args[] = new Data *[2];
-                    args[0] = new Int32(2);
-                    args[1] = new Int32(10);
-                    Data *result = conn->get("(MY_NODE:DATA * $1)*$2", args, 2);
-    */
-
-                }
-                catch(MDSplus::MdsException ex)
+                if (!ref.IsValid())
                 {
-                    REPORT_ERROR(ErrorManagement::InitialisationError, "Error opening the tree: %s\n",ex.what());
-                    return false;
-                }
-
-                StreamString currentshotrequest;
-
-                if(shottoopen==0)
-                {
-                    try {
-                        currentshotrequest = "current_shot('";
-                        currentshotrequest += ref->getTree();
-                        currentshotrequest += "')";
-                        nodeData = currentconnection->get(currentshotrequest.Buffer());
-
-                        int32 currentshotno = nodeData->getInt();
-                        REPORT_ERROR(ErrorManagement::Information, "%s, current shot is: %d", this->GetName(), currentshotno);
-                    }
-                    catch(MDSplus::MdsException ex)
+                    // MDSObjLoader populates itself with AnyObjects, so references to AnyObject are ignored (no warning issued).
+                    ReferenceT<AnyObject> objRef = Get(i);
+                    if (!objRef.IsValid())
                     {
-                        REPORT_ERROR(ErrorManagement::Warning, "Error calling %s, no current shot info available\n",currentshotrequest.Buffer(),ex.what());
+                        REPORT_ERROR(ErrorManagement::InitialisationError, "Node %u is of incompatible class. Invalid reference.", i);
                     }
                 }
-                
-                    
+                else
+                {
+                    // If the connection has a local shot defined, override the one defined in the MDSObjLoader main object
+                    int32 shottoopen;
+                    if (ref->hasLocalShot())
+                    {
+                        shottoopen = ref->getLocalShot();
+                    }
+                    else
+                    {
+                        // If not defined, use the global port
+                        if (hasglobalshot)
+                        {
+                            shottoopen = shot;
+                        }
+                        else
+                        {
+                            // Error. No shots defined anywhere.
+                            status = false;
+                            REPORT_ERROR(ErrorManagement::ParametersError, "Neither %s nor %s have defined any Shot.", this->GetName(), ref->GetName());
+                        }
+                    }
+
+                    REPORT_ERROR(ErrorManagement::Information, "%s connecting to server: %s, tree: %s, shot: %d", this->GetName(), ref->getServer().Buffer(), ref->getTree().Buffer(), shottoopen);
+
+                    // Start the connection with the server
+                    MDSClientTypes clienttype = ref->getClientType();
+                    try
+                    {
+                        switch (clienttype)
+                        {
+                            case MDSClientType_Distributed:
+                            {
+                                currentconnection = NULL;
+                                currenttree = new MDSplus::Tree(ref->getTree().Buffer(), shottoopen, "NORMAL");
+                                break;
+                            }
+                            case MDSClientType_Thin:
+                            default:
+                            {
+                                currenttree = NULL;
+                                currentconnection = new MDSplus::Connection((char *)(ref->getServer().Buffer()));
+                                currentconnection->openTree((char *)(ref->getTree().Buffer()), (int)shottoopen);
+                                break;
+                            }
+                        }
+                    }
+                    catch (MDSplus::MdsException ex)
+                    {
+                        REPORT_ERROR(ErrorManagement::InitialisationError, "Error opening the tree: %s\n", ex.what());
+                        return false;
+                    }
+
                     // ... loop over all children of the connection, that are supposed to be MDSParameters
-                    for(uint32 j=0; j<ref->Size(); j++){
-                        ReferenceT<MDSParameter> refPar=ref->Get(j);
-                        if (refPar.IsValid()) {
-                            
+                    for (uint32 j = 0; j < ref->Size(); j++)
+                    {
+                        //Get reference to the next MDSParameter
+                        ReferenceT<MDSParameter> refPar = ref->Get(j);
+                        if (refPar.IsValid())
+                        {
                             // Actualisation (data from MDSplus are copied into this MDSParameter)
-                            ret = refPar->Actualize(privatecdb, currentconnection, currenttree, basename);
-                            
+                            status = refPar->Actualize(privatecdb, clienttype, currentconnection, currenttree, basename);
+
                             // Also insert an AnyObject copy of this parameter at the root level of this ReferenceContainer
                             ReferenceT<AnyObject> paramObject("AnyObject", GlobalObjectsDatabase::Instance()->GetStandardHeap());
-                            
-                            if (ret && paramObject.IsValid()) {
-                                
-                                if (refPar->IsStaticDeclared()) {
-                                    ret = paramObject->Serialise(*(refPar.operator ->())); // required since we can't do Serialise(*refPar), * is not overloaded for ReferenceT
+
+                            if (status && paramObject.IsValid())
+                            {
+                                if (refPar->IsStaticDeclared())
+                                {
+                                    status = paramObject->Serialise(*(refPar.operator->())); // required since we can't do Serialise(*refPar), * is not overloaded for ReferenceT
                                 }
-                                else {
+                                else
+                                {
                                     // If the source parameter is unlinked a placeholder AnyType is Serialised instead
                                     AnyType unlinkedPar = AnyType(0u);
                                     unlinkedPar.SetStaticDeclared(false);
-                                    
-                                    ret = paramObject->Serialise(unlinkedPar);
+
+                                    status = paramObject->Serialise(unlinkedPar);
                                 }
-                                
-                                if (ret) {
+
+                                if (status)
+                                {
                                     paramObject->SetName(refPar->GetName());
-                                    ret = Insert(paramObject);
+                                    status = Insert(paramObject);
                                 }
                             }
-                        
-                            if(!ret) goto actualizeerrorexit;
-                            
+
+                            if (!status)
+                            {
+                                goto actualizeerrorexit;
+                            }
                         }
                     }
-                    
-                //printf("Here we should disconnect.\n");
-                //TODO: ask how to force a disconnect
-                
-                REPORT_ERROR(ErrorManagement::Information, "%s disconnecting", this->GetName());
-             }
 
-             
-             //delete currenttree;
+                    // Close the connection
+                    switch (clienttype)
+                    {
+                        case MDSClientType_Distributed:
+                        {
+                            currenttree = NULL;
+                            break;
+                        }
+                        case MDSClientType_Thin:
+                        default:
+                        {
+                            currentconnection->closeTree((char *)(ref->getTree().Buffer()), (int)shottoopen);
+                            currentconnection = NULL;
+                            break;
+                        }
+                    }
 
-         }
-    }
-    
+                    REPORT_ERROR(ErrorManagement::Information, "%s disconnecting", this->GetName());
+                }
+            }
+        }
+
     actualizeerrorexit:
-    
-    return ret;
-}
 
-CLASS_REGISTER(MDSObjLoader, "1.0")
+        return status;
+    }
 
+    CLASS_REGISTER(MDSObjLoader, "1.0")
 }

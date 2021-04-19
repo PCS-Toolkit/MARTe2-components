@@ -25,16 +25,12 @@
 
 #define CSTRINGMAXLEN 512
 
-#define MDSTHINCLIENT
-//#define MDSDISTCLIENT
-
 //#define IGNORE_MDSSUCCESS_EXCEPTION
 #ifdef IGNORE_MDSSUCCESS_EXCEPTION
 #define __MDSEXCHECK__ strncmp(ex.what(), "%SS-W-SUCCESS", 13)
 #else
 #define __MDSEXCHECK__ 1
 #endif
-
 
 /*---------------------------------------------------------------------------*/
 /*                        Standard header includes                           */
@@ -50,97 +46,106 @@
 #include "mdsobjects.h"
 
 #include "ObjParameters.h"
+#include "MDSClientsTypes.h"
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
 
-namespace MARTe {
-
-/**
- * @brief
- * 
- * `DataOrientation` is used to specify the orientation of data as it is
- * stored in MDSplus. MDSplus is not aware of the orientation of data,
- * so this must be know to the user. Valid orientations are `RowMajor`
- * and `ColumnMajor`. In case no `DataOrientation` is specified, or the
- * value is not valid, `ColumnMajor` is assumed.
- * 
- * @warning Data stored in MDSplus from MATLAB(r) are usually `ColumnMajor`.
- * 
- * @warning No assumption is made for 3D matrices: their value is copied
- *          as-is. Make sure they are stored in MDSplus with the
- *          correct data orientation.
- * 
- * ~~~~
- * DataOrientation = RowMajor
- * ~~~~
- * 
- * When using `StartIdx` and `StopIdx` the returned type is the highest
- * datatype found while forming the array.
- * 
- */
-class MDSParameter: public ObjParameter {
-public:
-    CLASS_REGISTER_DECLARATION()
+namespace MARTe
+{
 
     /**
-     * @brief Constructor
+     * @brief
+     * 
+     * `DataOrientation` is used to specify the orientation of data as it is
+     * stored in MDSplus. MDSplus is not aware of the orientation of data,
+     * so this must be know to the user. Valid orientations are `RowMajor`
+     * and `ColumnMajor`. In case no `DataOrientation` is specified, or the
+     * value is not valid, `ColumnMajor` is assumed.
+     * 
+     * @warning Data stored in MDSplus from MATLAB(r) are usually `ColumnMajor`.
+     * 
+     * @warning No assumption is made for 3D matrices: their value is copied
+     *          as-is. Make sure they are stored in MDSplus with the
+     *          correct data orientation.
+     * 
+     * ~~~~
+     * DataOrientation = RowMajor
+     * ~~~~
+     * 
+     * When using `StartIdx` and `StopIdx` the returned type is the highest
+     * datatype found while forming the array.
+     * 
      */
-    MDSParameter();
+    class MDSParameter : public ObjParameter
+    {
+    public:
+        CLASS_REGISTER_DECLARATION()
 
-    /**
-     * @brief Destructor
-     */
-    virtual ~MDSParameter();
+        /**
+         * @brief Constructor
+         */
+        MDSParameter();
 
-    /**
-     * @see ReferenceContainer::Initialise()
-     */
-    virtual bool Initialise(StructuredDataI &data);
+        /**
+         * @brief Destructor
+         */
+        virtual ~MDSParameter();
 
-    inline  void SetConnection(StreamString &setServer, StreamString &setTree, StreamString &setName) { serverName = setServer; treeName = setTree; connectionName = setName; }
+        /**
+         * @see ReferenceContainer::Initialise()
+         */
+        virtual bool Initialise(StructuredDataI &data);
 
-    virtual bool Actualize(ConfigurationDatabase &targetcdb, MDSplus::Connection *conn, MDSplus::Tree *tree, StreamString &baseClassName);
-    
-protected:
-    
-    StreamString MDSPath;               //!< Path of the parameter in the MDSplus tree from which it is retrieved.
-    StreamString MDSOrientation;        //!< Name of the orientation of the data retrieved from MDSplus (not known by MDSplus, must be specified by the user).
-    uint32       targetDim;             //!< Take the first `targetDim` elements of an array if != 0.
-    uint32       startIdx;                 
-    uint32       stopIdx;
-    
-private:
+        inline void SetConnection(MDSClientTypes &setClientType, StreamString &setServer, StreamString &setTree, StreamString &setName)
+        {
+            serverName = setServer;
+            treeName = setTree;
+            connectionName = setName;
+            clientType = setClientType;
+        }
 
-    StreamString serverName;
-    StreamString treeName;
-    StreamString connectionName;
-    
-    /**
-     * @brief Used to store orientation of multidimensional data (matrices and 3D matrices).
-     */
-    enum DataOrientation {
-        RowMajor,
-        ColumnMajor,
-        None
+        virtual bool Actualize(ConfigurationDatabase &targetcdb, MDSClientTypes &clienttype, MDSplus::Connection *conn, 
+            MDSplus::Tree *tree, StreamString &baseClassName);
+
+    protected:
+        StreamString MDSPath;        //!< Path of the parameter in the MDSplus tree from which it is retrieved.
+        StreamString MDSOrientation; //!< Name of the orientation of the data retrieved from MDSplus (not known by MDSplus, must be specified by the user).
+        uint32 targetDim;            //!< Take the first `targetDim` elements of an array if != 0.
+        uint32 startIdx;
+        uint32 stopIdx;
+
+    private:
+        StreamString serverName;
+        StreamString treeName;
+        StreamString connectionName;
+        MDSClientTypes clientType;
+
+        /**
+         * @brief Used to store orientation of multidimensional data (matrices and 3D matrices).
+         */
+        enum DataOrientation
+        {
+            RowMajor,
+            ColumnMajor,
+            None
+        };
+
+        DataOrientation sourceParamOrientation; //!< Orientation of the data retrieved from MDSplus (not known by MDSplus, must be specified by the user).
+
+        /**
+         * @brief   Copy the memory converting from column-major to row-major ordering.
+         * @details Required since source parameters may be in column-major order, but
+         *          MARTe2 uses row-major order.
+         */
+        bool TransposeAndCopy(TypeDescriptor type, void *const destination, const void *const source);
+
+        /**
+         * @brief   Templated method to reorder data from column-major to row-major.
+         */
+        template <typename T>
+        bool TransposeAndCopyT(void *const destination, const void *const source);
     };
-    
-    DataOrientation sourceParamOrientation; //!< Orientation of the data retrieved from MDSplus (not known by MDSplus, must be specified by the user).
-    
-    /**
-     * @brief   Copy the memory converting from column-major to row-major ordering.
-     * @details Required since source parameters may be in column-major order, but
-     *          MARTe2 uses row-major order.
-     */
-    bool TransposeAndCopy(TypeDescriptor type, void *const destination, const void *const source);
-    
-    /**
-     * @brief   Templated method to reorder data from column-major to row-major.
-     */
-    template<typename T>
-    bool TransposeAndCopyT(void *const destination, const void *const source);
-
-};
 
 } /* namespace MARTe */
 

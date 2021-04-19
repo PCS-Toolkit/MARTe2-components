@@ -36,52 +36,53 @@
 #include "StreamString.h"
 
 #include "MDSParameters.h"
+#include "MDSClientsTypes.h"
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
 
-namespace MARTe {
-
-/**
- * @brief
- */
-class MDSObjConnection: public ReferenceContainer {
-public:
-    CLASS_REGISTER_DECLARATION()
+namespace MARTe
+{
 
     /**
-     * @brief Constructor
+     * @brief
      */
-    MDSObjConnection();
+    class MDSObjConnection : public ReferenceContainer
+    {
+    public:
+        CLASS_REGISTER_DECLARATION()
 
-    /**
-     * @brief Destructor
-     */
-    virtual ~MDSObjConnection();
+        /**
+         * @brief Constructor
+         */
+        MDSObjConnection();
 
-    /**
-     * @see ReferenceContainer::Initialise()
-     */
-    virtual bool Initialise(StructuredDataI &data);
+        /**
+         * @brief Destructor
+         */
+        virtual ~MDSObjConnection();
 
-    inline StreamString &getServer() { return server; }
-    inline StreamString &getTree()   { return tree; }
-    inline bool hasLocalShot() { return localshot; }
-    inline int32 getLocalShot() { return shot; }
+        /**
+         * @see ReferenceContainer::Initialise()
+         */
+        virtual bool Initialise(StructuredDataI &data);
 
-protected:
+        inline StreamString &getServer() { return server; }
+        inline StreamString &getTree() { return tree; }
+        inline bool hasLocalShot() { return haslocalshot; }
+        inline int32 getLocalShot() { return shot; }
+        inline MDSClientTypes getClientType() { return clienttype; }
 
-private:
-
-    bool localshot;
-    StreamString server;
-    StreamString tree;
-    int32 shot;
-
-};
+    protected:
+    private:
+        bool haslocalshot;
+        StreamString server;
+        StreamString tree;
+        int32 shot;
+        MDSClientTypes clienttype;
+    };
 
 } /* namespace MARTe */
-
 
 /*---------------------------------------------------------------------------*/
 /*                        Inline method definitions                          */

@@ -37,24 +37,22 @@
 /*                           Method definitions                              */
 /*---------------------------------------------------------------------------*/
 
-namespace MARTe {
-
-
-ParObjLoader::ParObjLoader() :
-        ReferenceContainer()
+namespace MARTe
 {
-    //printf("ParObjLoader constructor called\n");
-}
+    ParObjLoader::ParObjLoader() : ReferenceContainer()
+    {
+    }
 
-ParObjLoader::~ParObjLoader() {
-}
+    ParObjLoader::~ParObjLoader()
+    {
+    }
 
-bool ParObjLoader::Initialise(StructuredDataI &data) {
-    bool ret = ReferenceContainer::Initialise(data);
+    bool ParObjLoader::Initialise(StructuredDataI &data)
+    {
+        bool ret = ReferenceContainer::Initialise(data);
 
-    return ret;
-}
+        return ret;
+    }
 
-CLASS_REGISTER(ParObjLoader, "1.0")
-
+    CLASS_REGISTER(ParObjLoader, "1.0")
 }

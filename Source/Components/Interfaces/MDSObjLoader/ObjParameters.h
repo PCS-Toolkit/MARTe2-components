@@ -38,94 +38,91 @@
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
 
-namespace MARTe{
-
-/**
- * @brief   AnyType wrapper class representing a parameter.
- * @details This class is a wrapper for AnyType inheriting also from ReferenceContainer,
- *          so that is has both MARTe::AnyType and MARTe::Object properties.
- *          This class can thus be instantiated in the configuration file,
- *          and its value can be used as a parameter by other MARTe objects
- *          using the AnyType APIs.
- *          
- *          The class is expected to be managed by a loader class that is
- *          responsible for populating the underlying AnyType by calling the
- *          ObjParameter::Actualize() method. The standard loader class for
- *          managing ObjParameter is ParObjLoader.
- * 
- *          The loader class shall be a derived class of ParObjLoader.
- * 
- *          The class inherits from AnyType so that parameter properties can be
- *          set and get with AnyType public interfaces.
- *          This class is de facto an AnyType with MARTe::Object properties.
- */
-class ObjParameter: public ReferenceContainer, public AnyType {
-    
-public:
-    CLASS_REGISTER_DECLARATION()
+namespace MARTe
+{
 
     /**
-     * @brief Default constructor.
+     * @brief   AnyType wrapper class representing a parameter.
+     * @details This class is a wrapper for AnyType inheriting also from ReferenceContainer,
+     *          so that is has both MARTe::AnyType and MARTe::Object properties.
+     *          This class can thus be instantiated in the configuration file,
+     *          and its value can be used as a parameter by other MARTe objects
+     *          using the AnyType APIs.
+     *          
+     *          The class is expected to be managed by a loader class that is
+     *          responsible for populating the underlying AnyType by calling the
+     *          ObjParameter::Actualize() method. The standard loader class for
+     *          managing ObjParameter is ParObjLoader.
+     * 
+     *          The loader class shall be a derived class of ParObjLoader.
+     * 
+     *          The class inherits from AnyType so that parameter properties can be
+     *          set and get with AnyType public interfaces.
+     *          This class is de facto an AnyType with MARTe::Object properties.
      */
-    ObjParameter();
+    class ObjParameter : public ReferenceContainer, public AnyType
+    {
+    public:
+        CLASS_REGISTER_DECLARATION()
 
-    /**
-     * @brief Destructor
-     */
-    virtual ~ObjParameter();
+        /**
+         * @brief Default constructor.
+         */
+        ObjParameter();
 
-    /**
-     * @brief Generic initialization method.
-     * @see   ReferenceContainer::Initialise()
-     */
-    virtual bool Initialise(StructuredDataI &data);
-    
-    /**
-     * @brief   Mathod called by the parameter loader class to populate parameter properties.
-     * @details 
-     */
-    virtual bool Actualize(ConfigurationDatabase &targetcdb);
+        /**
+         * @brief Destructor
+         */
+        virtual ~ObjParameter();
 
-    /**
-     * @todo remove these methods, they are redundand since alternatives
-     *       are provided by inheriting from AnyType.
-     */
-    //@{
+        /**
+         * @brief Generic initialization method.
+         * @see   ReferenceContainer::Initialise()
+         */
+        virtual bool Initialise(StructuredDataI &data);
+
+        /**
+         * @brief   Mathod called by the parameter loader class to populate parameter properties.
+         * @details 
+         */
+        virtual bool Actualize(ConfigurationDatabase &targetcdb);
+
+        /**
+         * @todo remove these methods, they are redundand since alternatives
+         *       are provided by inheriting from AnyType.
+         */
+        //@{
         inline bool isValid() { return valid; }
         inline bool isUnlinked() { return unlinked; }
         inline StreamString &getType() { return type; }
         inline uint8 getDatatypesize() { return datatypesize; }
-        inline uint8 getNumdims() { return  numdims; }
+        inline uint8 getNumdims() { return numdims; }
         inline uint32 getDimAt(uint8 idx) { return dims[idx]; }
         inline uint32 getSize() { return size; }
-        inline void* getBuffer() { return databuffer; }
-    //@}
+        inline void *getBuffer() { return databuffer; }
+        //@}
 
+    protected:
+        StreamString MARTePath; //!< Absolute path of the parameter in MARTe2 ObjectRegistryDatabase.
 
-protected:
+        /**
+         * @todo remove these members, they are redundant (alternatives provided by AnyType)
+         */
+        //@{
+        bool valid;         //!< validity flag, the parameter must be used only if this flag is true
+        bool unlinked;      //!< if true the parameter hasn't yet a source and can be safely skipped
+        StreamString type;  //!< C string containing the datatype name
+        uint8 datatypesize; //!< size in bytes of the data type
+        uint8 numdims;      //!< number of dimensions
+        uint32 *dims;       //!< dimensions sizes
+        uint32 size;        //!< total size in bytes
+        void *databuffer;   //!< ready to copy databuffer
+        //@}
 
-    StreamString MARTePath;             //!< Absolute path of the parameter in MARTe2 ObjectRegistryDatabase.
+        void *dataBuffer;
 
-    /**
-     * @todo remove these members, they are redundant (alternatives provided by AnyType)
-     */
-    //@{
-        bool valid;                         //!< validity flag, the parameter must be used only if this flag is true
-        bool unlinked;                      //!< if true the parameter hasn't yet a source and can be safely skipped
-        StreamString type;                  //!< C string containing the datatype name
-        uint8 datatypesize;                 //!< size in bytes of the data type
-        uint8 numdims;                      //!< number of dimensions
-        uint32 *dims;                       //!< dimensions sizes
-        uint32 size;                        //!< total size in bytes
-        void *databuffer;                   //!< ready to copy databuffer
-    //@}
-    
-    void* dataBuffer;
-
-private:
-
-};
-
+    private:
+    };
 }
 /*---------------------------------------------------------------------------*/
 /*                        Inline method definitions                          */

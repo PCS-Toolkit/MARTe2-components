@@ -38,44 +38,38 @@
 /*                           Method definitions                              */
 /*---------------------------------------------------------------------------*/
 
-namespace MARTe {
+namespace MARTe
+{
+    ObjParameter::ObjParameter() : ReferenceContainer()
+    {
+        valid = false;
+        size = 0;
+        //orientation=rtwCAPI_SCALAR;
+        numdims = 0;
+        type = "";
+        datatypesize = 0;
+        dims = NULL;
+        databuffer = NULL;
+    }
 
-ObjParameter::ObjParameter() :
-        ReferenceContainer() {
-    valid=false;
-    size=0;
-    //orientation=rtwCAPI_SCALAR;
-    numdims=0;
-    type="";
-    datatypesize=0;
-    dims=NULL;
-    databuffer=NULL;
-    //printf("ObjParameter constructor called\n");
+    ObjParameter::~ObjParameter()
+    {
+        if (databuffer != NULL)
+            free(databuffer);
+        if (dims != NULL)
+            free(dims);
+    }
+
+    bool ObjParameter::Initialise(StructuredDataI &data)
+    {
+        bool ret = ReferenceContainer::Initialise(data);
+        return ret;
+    }
+
+    bool ObjParameter::Actualize(ConfigurationDatabase &targetcdb)
+    {
+        return true;
+    }
+
+    CLASS_REGISTER(ObjParameter, "1.0")
 }
-
-ObjParameter::~ObjParameter() {
-    if(databuffer!=NULL) free(databuffer);
-    if(dims!=NULL) free(dims);
-
-}
-
-bool ObjParameter::Initialise(StructuredDataI &data) {
-
-    //alloca e inizializza prima tutti i figli
-    bool ret = ReferenceContainer::Initialise(data);
-    return ret;
-}
-
-bool ObjParameter::Actualize(ConfigurationDatabase &targetcdb) {
-    return true;
-}
-
-
-CLASS_REGISTER(ObjParameter, "1.0")
-}
-
-
-
-
-
-
