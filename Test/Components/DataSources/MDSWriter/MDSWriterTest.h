@@ -264,6 +264,11 @@ public:
     bool TestIntegratedInApplication_Trigger_Discontinuity();
 
     /**
+     * @brief Tests the MDSWriter integrated in an application which asynchronously stores data based on a trigger event forcing discontinuities with FlushIfDiscontinuity set to 1
+     */
+    bool TestIntegratedInApplication_Trigger_Discontinuity_FlushIfDiscontinuity();
+
+    /**
      * @brief Tests the MDSWriter integrated in an application which continuously stores data with NumberOfElements > 1.
      */
     bool TestIntegratedInApplication_NoTrigger_Elements();
@@ -277,6 +282,11 @@ public:
      * @brief Tests the MDSWriter integrated in an application which asynchronously stores data, with NumberOfElements > 1, based on a trigger event.
      */
     bool TestIntegratedInApplication_NoTrigger_AutomaticSegmentation();
+
+    /**
+     * @brief Tests the MDSWriter integrated in an application which asynchronously stores data, with NumberOfElements > 1, based on a trigger event.
+     */
+    bool TestIntegratedInApplication_NoTrigger_AutomaticSegmentation_Vector();
 
     /**
      * @brief Tests the GetCPUMask method.

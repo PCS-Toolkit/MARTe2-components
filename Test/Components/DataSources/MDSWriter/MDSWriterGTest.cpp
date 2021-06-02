@@ -158,6 +158,12 @@ TEST(MDSWriterGTest,TestIntegratedInApplication_Trigger_Discontinuity) {
     MDSWriterTest test;
     ASSERT_TRUE(test.TestIntegratedInApplication_Trigger_Discontinuity());
 }
+
+TEST(MDSWriterGTest,TestIntegratedInApplication_Trigger_Discontinuity_FlushIfDiscontinuity) {
+    MDSWriterTest test;
+    ASSERT_TRUE(test.TestIntegratedInApplication_Trigger_Discontinuity_FlushIfDiscontinuity());
+}
+
 TEST(MDSWriterGTest,TestIntegratedInApplication_NoTrigger_Elements) {
     MDSWriterTest test;
     ASSERT_TRUE(test.TestIntegratedInApplication_NoTrigger_Elements());
@@ -176,6 +182,11 @@ TEST(MDSWriterGTest,TestSetConfiguredDatabase) {
 TEST(MDSWriterGTest,TestIntegratedInApplication_NoTrigger_AutomaticSegmentation) {
     MDSWriterTest test;
     ASSERT_TRUE(test.TestIntegratedInApplication_NoTrigger_AutomaticSegmentation());
+}
+
+TEST(MDSWriterGTest,TestIntegratedInApplication_NoTrigger_AutomaticSegmentation_Vector) {
+    MDSWriterTest test;
+    ASSERT_TRUE(test.TestIntegratedInApplication_NoTrigger_AutomaticSegmentation_Vector());
 }
 
 TEST(MDSWriterGTest,TestSetConfiguredDatabase_False_MoreThanOneTimeSignal) {

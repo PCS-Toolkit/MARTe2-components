@@ -31,7 +31,6 @@
 #include "AdvancedErrorManagement.h"
 #include "CLASSMETHODREGISTER.h"
 #include "MDSWriter.h"
-#include "MemoryMapAsyncOutputBroker.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
@@ -42,7 +41,7 @@
 /*---------------------------------------------------------------------------*/
 namespace MARTe {
 
-static const int32 MDS_UNDEFINED_PULSE_NUMBER = -2;
+static const int32 MDS_UNDEFINED_PULSE_NUMBER = -3;
 
 MDSWriter::MDSWriter() :
         DataSourceI(),
@@ -56,7 +55,7 @@ MDSWriter::MDSWriter() :
     nodes = NULL_PTR(MDSWriterNode **);
     dataSourceMemory = NULL_PTR(char8 *);
     offsets = NULL_PTR(uint32 *);
-    cpuMask = 0xfu;
+    cpuMask = ProcessorType(0xfu);
     stackSize = 0u;
     tree = NULL_PTR(MDSplus::Tree *);
     treeName = "";
@@ -65,7 +64,6 @@ MDSWriter::MDSWriter() :
     lastTimeRefreshCount = 0u;
     refreshEveryCounts = 0u;
     fatalTreeNodeError = false;
-    brokerAsyncTrigger = NULL_PTR(MemoryMapAsyncTriggerOutputBroker *);
     filter = ReferenceT<RegisteredMethodsMessageFilter>(GlobalObjectsDatabase::Instance()->GetStandardHeap());
     filter->SetDestination(this);
     ErrorManagement::ErrorType ret = MessageI::InstallMessageFilter(filter);
@@ -140,21 +138,20 @@ bool MDSWriter::GetInputBrokers(ReferenceContainer& inputBrokers, const char8* c
 bool MDSWriter::GetOutputBrokers(ReferenceContainer& outputBrokers, const char8* const functionName, void* const gamMemPtr) {
     bool ok = true;
     if (storeOnTrigger) {
-        ReferenceT<MemoryMapAsyncTriggerOutputBroker> brokerAsyncTriggerNew("MemoryMapAsyncTriggerOutputBroker");
-        brokerAsyncTrigger = brokerAsyncTriggerNew.operator ->();
-        ok = brokerAsyncTriggerNew->InitWithTriggerParameters(OutputSignals, *this, functionName, gamMemPtr,
+        brokerAsyncTrigger = ReferenceT<MemoryMapAsyncTriggerOutputBroker>("MemoryMapAsyncTriggerOutputBroker");
+        ok = brokerAsyncTrigger->InitWithTriggerParameters(OutputSignals, *this, functionName, gamMemPtr,
                                                               numberOfBuffers, numberOfPreTriggers,
                                                               numberOfPostTriggers, cpuMask, stackSize);
         if (ok) {
-            ok = outputBrokers.Insert(brokerAsyncTriggerNew);
+            ok = outputBrokers.Insert(brokerAsyncTrigger);
         }
     }
     else {
-        ReferenceT<MemoryMapAsyncOutputBroker> brokerAsync("MemoryMapAsyncOutputBroker");
-        ok = brokerAsync->InitWithBufferParameters(OutputSignals, *this, functionName, gamMemPtr, numberOfBuffers,
+        brokerAsyncOutput = ReferenceT<MemoryMapAsyncOutputBroker> ("MemoryMapAsyncOutputBroker");
+        ok = brokerAsyncOutput->InitWithBufferParameters(OutputSignals, *this, functionName, gamMemPtr, numberOfBuffers,
                                                    cpuMask, stackSize);
         if (ok) {
-            ok = outputBrokers.Insert(brokerAsync);
+            ok = outputBrokers.Insert(brokerAsyncOutput);
         }
     }
     return ok;
@@ -206,13 +203,13 @@ bool MDSWriter::Initialise(StructuredDataI& data) {
         REPORT_ERROR(ErrorManagement::ParametersError, "NumberOfBuffers shall be > 0u");
     }
     if (ok) {
-        uint32 cpuMaskIn;
+        uint64 cpuMaskIn;
         ok = data.Read("CPUMask", cpuMaskIn);
         if (!ok) {
             REPORT_ERROR(ErrorManagement::ParametersError, "CPUMask shall be specified");
         }
         else {
-            cpuMask = cpuMaskIn;
+            cpuMask = BitSet(cpuMaskIn);
         }
     }
     if (ok) {
@@ -519,7 +516,7 @@ bool MDSWriter::SetConfiguredDatabase(StructuredDataI& data) {
     bool useTimeSignal = (timeSignalIdx > -1);
     if (storeOnTrigger) {
         if (ok) {
-            ok = (useTimeSignal);
+            ok = useTimeSignal;
             if (!ok) {
                 REPORT_ERROR(ErrorManagement::ParametersError,
                              "StoreOnTrigger was specified but no TimeSignal was found");
@@ -586,13 +583,19 @@ ErrorManagement::ErrorType MDSWriter::OpenTree(const int32 pulseNumberIn) {
         tree = NULL_PTR(MDSplus::Tree *);
     }
     //Check for the latest pulse number
-    if (pulseNumber == -1) {
+    if ((pulseNumber < 0) && (pulseNumber != MDS_UNDEFINED_PULSE_NUMBER)) {
         try {
             tree = new MDSplus::Tree(treeName.Buffer(), -1);
+            int32 pulseNumberT = pulseNumber;
             pulseNumber = MDSplus::Tree::getCurrent(treeName.Buffer());
-            pulseNumber++;
+            if (pulseNumberT == -1){
+                pulseNumber++;
+            }
+            REPORT_ERROR(ErrorManagement::ParametersError, "Opening tree %d", pulseNumber);
             MDSplus::Tree::setCurrent(treeName.Buffer(), pulseNumber);
-            tree->createPulse(pulseNumber);
+            if (pulseNumberT == -1){
+                tree->createPulse(pulseNumber);
+            }
             delete tree;
             tree = NULL_PTR(MDSplus::Tree *);
         }
@@ -665,7 +668,7 @@ ErrorManagement::ErrorType MDSWriter::OpenTree(const int32 pulseNumberIn) {
         }
     }
     if (ok) {
-        if (brokerAsyncTrigger != NULL_PTR(MemoryMapAsyncTriggerOutputBroker *)) {
+        if (brokerAsyncTrigger.IsValid()) {
             brokerAsyncTrigger->ResetPreTriggerBuffers();
         }
     }
@@ -711,7 +714,7 @@ ErrorManagement::ErrorType MDSWriter::OpenTree(const int32 pulseNumberIn) {
 ErrorManagement::ErrorType MDSWriter::FlushSegments() {
     uint32 n;
     bool ok = true;
-    if (brokerAsyncTrigger != NULL_PTR(MemoryMapAsyncTriggerOutputBroker *)) {
+    if (brokerAsyncTrigger.IsValid()) {
         ok = brokerAsyncTrigger->FlushAllTriggers();
     }
     if (nodes != NULL_PTR(MDSWriterNode **)) {
@@ -786,6 +789,19 @@ int32 MDSWriter::GetTimeSignalIdx() const {
 const StreamString& MDSWriter::GetTreeName() const {
     return treeName;
 }
+
+void MDSWriter::Purge(ReferenceContainer &purgeList) {
+    if (brokerAsyncTrigger.IsValid()) {
+        (void) brokerAsyncTrigger->FlushAllTriggers();
+        brokerAsyncTrigger->UnlinkDataSource();
+    }
+    if (brokerAsyncOutput.IsValid()) {
+        (void) brokerAsyncOutput->Flush();
+        brokerAsyncOutput->UnlinkDataSource();
+    }
+    DataSourceI::Purge(purgeList);
+}
+
 
 CLASS_REGISTER(MDSWriter, "1.0")
 CLASS_METHOD_REGISTER(MDSWriter, FlushSegments)

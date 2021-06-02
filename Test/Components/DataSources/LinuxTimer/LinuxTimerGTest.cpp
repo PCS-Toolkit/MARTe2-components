@@ -26,8 +26,8 @@
 /*---------------------------------------------------------------------------*/
 /*                         Standard header includes                          */
 /*---------------------------------------------------------------------------*/
-#include <limits.h>
 #include "gtest/gtest.h"
+#include <limits.h>
 
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
@@ -106,6 +106,26 @@ TEST(LinuxTimerGTest, TestExecute_RTThread) {
     ASSERT_TRUE(test.TestExecute_RTThread());
 }
 
+TEST(LinuxTimerGTest, TestExecute_RTThread_WithFive) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestExecute_RTThread_WithFive());
+}
+
+TEST(LinuxTimerGTest, TestExecute_RTThread_WithPhase) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestExecute_RTThread_WithPhase());
+}
+
+TEST(LinuxTimerGTest, TestInitialise_ExplicitTimeProvider) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestInitialise_ExplicitTimeProvider());
+}
+
+TEST(LinuxTimerGTest, TestInitialise_False_ExplicitWrongTimeProvider) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestInitialise_False_ExplicitWrongTimeProvider());
+}
+
 TEST(LinuxTimerGTest, TestPrepareNextState) {
     LinuxTimerTest test;
     ASSERT_TRUE(test.TestPrepareNextState());
@@ -175,9 +195,9 @@ TEST(LinuxTimerGTest, TestSetConfiguredDatabase) {
     ASSERT_TRUE(test.TestSetConfiguredDatabase());
 }
 
-TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_MoreThan2Signals) {
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_MoreThan5Signals) {
     LinuxTimerTest test;
-    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_MoreThan2Signals());
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_MoreThan5Signals());
 }
 
 TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_No32BitsSignal1) {
@@ -188,6 +208,16 @@ TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_No32BitsSignal1) {
 TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_No32BitsSignal2) {
     LinuxTimerTest test;
     ASSERT_TRUE(test.TestSetConfiguredDatabase_False_No32BitsSignal2());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_InvalidSignal3) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_InvalidSignal3());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_InvalidSignal4) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_InvalidSignal4());
 }
 
 TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_NoFrequencySet) {
@@ -210,10 +240,41 @@ TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_IntegerSignal2) {
     ASSERT_TRUE(test.TestSetConfiguredDatabase_False_IntegerSignal2());
 }
 
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_MoreThan1Provider) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_MoreThan1Provider());
+}
+
 TEST(LinuxTimerGTest, TestGetSleepPercentage) {
     LinuxTimerTest test;
     ASSERT_TRUE(test.TestGetSleepPercentage());
 }
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_UseBusySleepAndPercentage) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_UseBusySleepAndPercentage());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_False_InvalidSleepNature) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_False_InvalidSleepNature());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_ExplicitHRTWithMoreThan100Perc) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_ExplicitHRTWithMoreThan100Perc());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_PureBusySleep) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_PureBusySleep());
+}
+
+TEST(LinuxTimerGTest, TestSetConfiguredDatabase_WithBackwardCompatOnHRT) {
+    LinuxTimerTest test;
+    ASSERT_TRUE(test.TestSetConfiguredDatabase_WithBackwardCompatOnHRT());
+}
+
 /*---------------------------------------------------------------------------*/
 /*                           Method definitions                              */
 /*---------------------------------------------------------------------------*/

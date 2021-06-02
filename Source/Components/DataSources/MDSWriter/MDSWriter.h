@@ -33,6 +33,7 @@
 /*---------------------------------------------------------------------------*/
 #include "DataSourceI.h"
 #include "MDSWriterNode.h"
+#include "MemoryMapAsyncOutputBroker.h"
 #include "MemoryMapAsyncTriggerOutputBroker.h"
 #include "MessageI.h"
 #include "ProcessorType.h"
@@ -85,6 +86,8 @@ namespace MARTe {
  *             DecimatedNodeName = "SIGUINT16D" //Optional. The node where MDSplus stores the automatically computed decimated signal. When AutomaticSegmentation = 1 this field is ignored.
  *             MinMaxResampleFactor = 4 //Compulsory if DecimatedNodeName is set. Decimation factor that MDSplus applies to the decimated version of the signal. AutomaticSegmentation = 1 this field is ignored.
  *             SamplePhase = 0 //Optional. Shift the time vector by SamplePhase * Period
+ *             DiscontinuityFactor = 0. //Optional. A discontinuity is considered if the delta between two consecutive samples is greater than T+DiscontinuityFactor*T (where T is the nominal period) or
+ *                                                  minor than max(T-DiscontinuityFactor*T, 0). If a discontinuity is detected, the samples will be flushed and a new segment created for the next ones.
  *         }
  *         ...
  *     }
@@ -295,6 +298,11 @@ MDSWriter    ();
      */
     int32 GetTimeSignalIdx() const;
 
+    /**
+     * @see DataSourceI::Purge()
+     */
+    virtual void Purge(ReferenceContainer &purgeList);
+
 private:
 
     /**
@@ -398,9 +406,14 @@ private:
     ReferenceT<RegisteredMethodsMessageFilter> filter;
 
     /**
-     * The asynchronous triggered broker that provides the interface between the GAMs and the MDS+ memory
+     * Memory map asynchronous broker.
      */
-    MemoryMapAsyncTriggerOutputBroker *brokerAsyncTrigger;
+    ReferenceT<MemoryMapAsyncOutputBroker> brokerAsyncOutput;
+
+    /**
+     * Memory map asynchronously triggered broker.
+     */
+    ReferenceT<MemoryMapAsyncTriggerOutputBroker> brokerAsyncTrigger;
 
     /**
      * The message to send if the Tree is successfully opened.

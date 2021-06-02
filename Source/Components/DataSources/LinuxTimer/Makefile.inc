@@ -22,7 +22,7 @@
 #
 #############################################################
 
-OBJSX=LinuxTimer.x
+OBJSX=LinuxTimer.x TimeProvider.x HighResolutionTimeProvider.x
 
 PACKAGE=Components/DataSources
 ROOT_DIR=../../../../

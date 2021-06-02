@@ -42,6 +42,7 @@ LIBRARIES_STATIC+=NI1588/cov/NI1588Test$(LIBEXT)
 LIBRARIES_STATIC+=NI6259/cov/NI6259Test$(LIBEXT)
 LIBRARIES_STATIC+=NI6368/cov/NI6368Test$(LIBEXT)
 LIBRARIES_STATIC+=NI9157/cov/NI9157Test$(LIBEXT)
+LIBRARIES_STATIC+=NI9157/Optim/cov/NI9157MemoryOperationsHelperTest$(LIBEXT)
 endif
 
 ifdef MDSPLUS_DIR
@@ -59,6 +60,10 @@ endif
 
 ifdef OPEN62541_INCLUDE
 LIBRARIES_STATIC+=OPCUADataSource/cov/OPCUADataSourceTest$(LIBEXT)
+endif
+
+ifdef PROFINET_COMPILE
+LIBRARIES_STATIC+=ProfinetDataSource/cov/ProfinetDataSourceTest$(LIBEXT)
 endif
 
 # Inclusion of SDNPublisher DataSource is contingent to availability of SDN core library, etc.

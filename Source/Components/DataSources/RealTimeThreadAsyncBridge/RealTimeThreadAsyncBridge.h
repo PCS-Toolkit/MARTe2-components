@@ -33,6 +33,7 @@
 /*---------------------------------------------------------------------------*/
 #include "FastPollingMutexSem.h"
 #include "MemoryDataSourceI.h"
+#include "MessageI.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
@@ -49,11 +50,14 @@ namespace MARTe {
  * function returns false. The same happens if there is no buffer available for the reader (impossible if more than one buffer has been declared),
  * in this case the GetInputOffset returns false.
  *
+ * The RPC method ResetSignalValue allows to reset all the signal values.
+ *
   * <pre>
  * +ThisDataSourceIObjectName = {
  *    Class = RealTimeThreadAsyncBridge
  *    NumberOfBuffers = 3 //Optional but < 64. Default = 1. Each buffer contains a copy of each signal.
  *    HeapName = "Default" //Optional. Default = GlobalObjectsDatabase::Instance()->GetStandardHeap();
+ *    BlockingMode = 0 //Optional. Default = 0. NumberOfBuffers will be set to 1 and a spinlock mutex is used for synchronization on the shared signals
  *    ResetMSecTimeout = 1 //Optional. Default = TTInfiniteWait. The TerminateOutputCopy function can block when the counter used to newest written buffer overflows and needs to be reset.
  *                                                               If the reader should wait for this counter to be properly reset then the ResetMSecTimeout should
  *                                                               be increased to a large number. If instead the reader does not mind to get oldest buffer (instead of the newest) while this reset operation
@@ -69,7 +73,7 @@ namespace MARTe {
  * }
  * </pre>
  */
-class RealTimeThreadAsyncBridge: public MemoryDataSourceI {
+class RealTimeThreadAsyncBridge: public MemoryDataSourceI, public MessageI {
 public:
     CLASS_REGISTER_DECLARATION()
 
@@ -156,9 +160,14 @@ RealTimeThreadAsyncBridge    ();
 
     /**
      * @see DataSourceI::GetBrokerName
-     * @returns .
+     * @returns the broker name.
      */
     virtual const char8 *GetBrokerName(StructuredDataI &data, const SignalDirection direction);
+
+    /**
+     * @brief RPC call to reset all the signal values.
+     */
+    ErrorManagement::ErrorType ResetSignalValue();
 
 protected:
 
@@ -183,28 +192,15 @@ protected:
     uint32 *whatIsNewestGlobCounter;
 
     /**
-     * The number of write operations for each signal
-     */
-    uint32 *writeOp;
-
-    /**
-     * Initialised equal to \a writeOp and decremented in TerminateOutputCopy.
-     * When it reaches zero, the \a spinlocksWrite semaphore for the signal
-     * is unlocked.
-     */
-    uint32 *writeOpCounter;
-
-    /**
-     * Stores the signal offset in case of more write operations.
-     */
-    uint32 *offsetStore;
-
-    /**
      * The timeout in millisecs to lock the other \a spinlocksWrite semaphores
      * in case of overflow of \a whatIsNewestCounter (to avoid a priority inversion)
      */
     TimeoutType resetTimeout;
 
+    /**
+     * TODO
+     */
+    uint8 blockingMode;
 };
 
 }

@@ -32,7 +32,6 @@
 #include "CLASSMETHODREGISTER.h"
 #include "Directory.h"
 #include "FileWriter.h"
-#include "MemoryMapAsyncOutputBroker.h"
 
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
@@ -54,7 +53,7 @@ FileWriter::FileWriter() :
     numberOfBuffers = 0u;
     dataSourceMemory = NULL_PTR(char8 *);
     offsets = NULL_PTR(uint32 *);
-    cpuMask = 0xFEu;
+    cpuMask = ProcessorType(0xFEu);
     stackSize = 0u;
     numberOfBinaryBytes = 0u;
     fileFormat = FILE_FORMAT_BINARY;
@@ -224,13 +223,14 @@ bool FileWriter::Initialise(StructuredDataI& data) {
         }
     }
     if (ok) {
+        // TODO (WARNING) CHANGE FORMAT TO SUPPORT MORE THAN 32 cpus!
         uint32 cpuMaskIn;
         ok = data.Read("CPUMask", cpuMaskIn);
         if (!ok) {
             REPORT_ERROR(ErrorManagement::ParametersError, "CPUMask shall be specified");
         }
         else {
-            cpuMask = cpuMaskIn;
+            cpuMask = ProcessorType(cpuMaskIn);
         }
     }
     if (ok) {
@@ -662,7 +662,7 @@ ErrorManagement::ErrorType FileWriter::FlushFile() {
     else {
         ReferenceT<MemoryMapAsyncOutputBroker> brokerAsyncNoTrigger = brokerAsync;
         if (brokerAsyncNoTrigger.IsValid()) {
-            brokerAsyncNoTrigger->Flush();
+            ok = brokerAsyncNoTrigger->Flush();
         }
     }
     if (ok) {
@@ -714,6 +714,21 @@ bool FileWriter::IsStoreOnTrigger() const {
 
 bool FileWriter::IsOverwrite() const {
     return overwrite;
+}
+
+void FileWriter::Purge(ReferenceContainer &purgeList) {
+    if (FlushFile() != ErrorManagement::NoError) {
+        REPORT_ERROR(ErrorManagement::FatalError, "Failed to Flush the File");
+    }
+    ReferenceT<MemoryMapAsyncTriggerOutputBroker> brokerAsyncTrigger = brokerAsync;
+    if (brokerAsyncTrigger.IsValid()) {
+        brokerAsyncTrigger->UnlinkDataSource();
+    }
+    ReferenceT<MemoryMapAsyncOutputBroker> brokerAsyncOutput = brokerAsync;
+    if (brokerAsyncOutput.IsValid()) {
+        brokerAsyncOutput->UnlinkDataSource();
+    }
+    DataSourceI::Purge(purgeList);
 }
 
 CLASS_REGISTER(FileWriter, "1.0")

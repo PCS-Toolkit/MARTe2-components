@@ -10,6 +10,9 @@
 /filewriter_test.bin
 depends*.x86-linux
 EclipseLintLocal.sh
+VSCodeLcov.sh
 *.d
 depends*.*
 VSCodeLcov.sh
+.vscode
+EclipseLcov.local.sh

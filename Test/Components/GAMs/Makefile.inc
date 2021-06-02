@@ -28,16 +28,17 @@ SPB=  IOGAM.x\
     ConstantGAM.x\
     ConversionGAM.x\
     CRCGAM.x\
+    DoubleHandshakeGAM.x\
     FilterGAM.x\
     HistogramGAM.x\
     Interleaved2FlatGAM.x\
     MathExpressionGAM.x\
+    MessageGAM.x\
     MuxGAM.x\
     PIDGAM.x\
     SSMGAM.x\
     StatisticsGAM.x\
     TimeCorrectionGAM.x\
-    TriggerOnChangeGAM.x\
     WaveformGAM.x
 
 ifdef EFDA_MARTe_DIR
@@ -54,31 +55,7 @@ MAKEDEFAULTDIR=$(MARTe2_DIR)/MakeDefaults
 
 include $(MAKEDEFAULTDIR)/MakeStdLibDefs.$(TARGET)
 
-LIBRARIES_STATIC+=$(BUILD_DIR)/IOGAM/IOGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/ConstantGAM/ConstantGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/ConversionGAM/ConversionGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/CRCGAM/CRCGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/FilterGAM/FilterGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/HistogramGAM/HistogramGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/Interleaved2FlatGAM/Interleaved2FlatGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/MathExpressionGAM/MathExpressionGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/MuxGAM/MuxGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/PIDGAM/PIDGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/SSMGAM/SSMGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/StatisticsGAM/StatisticsGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/TimeCorrectionGAM/TimeCorrectionGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/TriggerOnChangeGAM/TriggerOnChangeGAMTest$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/WaveformGAM/WaveformGAMTest$(LIBEXT)
-ifdef EFDA_MARTe_DIR)
-LIBRARIES_STATIC+=$(BUILD_DIR)/BaseLib2GAM/BaseLib2GAMTest$(LIBEXT)
-endif
-
-ifdef MATLAB_DIR
-LIBRARIES_STATIC+=$(BUILD_DIR)/SimulinkWrapperGAM/SimulinkWrapperGAMTest$(LIBEXT)
-endif
-
-all: $(OBJS) $(SUBPROJ) \
-    $(BUILD_DIR)/GAMsTests$(LIBEXT)
+all: $(OBJS) $(SUBPROJ) 
 	echo  $(OBJS)
 
 include depends.$(TARGET)

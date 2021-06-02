@@ -24,7 +24,7 @@
 
 OBJSX= 
 
-SPB    = EpicsDataSource.x \
+SPB = EpicsDataSource.x \
     FileDataSource.x \
     LinuxTimer.x \
     LinkDataSource.x \
@@ -32,6 +32,12 @@ SPB    = EpicsDataSource.x \
     RealTimeThreadAsyncBridge.x \
     RealTimeThreadSynchronisation.x
 
+ROOT_DIR=../../..
+include ProfinetDataSource/Makefile.detect
+
+ifdef PROFINET_COMPILE
+SPB    += ProfinetDataSource.x
+endif
 
 ifdef OPEN62541_INCLUDE
 SPB    += OPCUADataSource.x
@@ -76,47 +82,7 @@ MAKEDEFAULTDIR=$(MARTe2_DIR)/MakeDefaults
 
 include $(MAKEDEFAULTDIR)/MakeStdLibDefs.$(TARGET)
 
-LIBRARIES_STATIC+=$(BUILD_DIR)/EpicsDataSource/EpicsDataSource$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/FileDataSource/FileDataSource$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/LinuxTimer/LinuxTimer$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/LinkDataSource/LinkDataSource$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/LoggerDataSource/LoggerDataSource$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/RealTimeThreadAsyncBridge/RealTimeThreadAsyncBridge$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/RealTimeThreadSynchronisation/RealTimeThreadSynchronisation$(LIBEXT)
-
-ifdef CODAC_ROOT
-LIBRARIES_STATIC+=$(BUILD_DIR)/DAN/DAN$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/NI1588/NI1588$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/NI6259/NI6259$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/NI6368/NI6368$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/NI9157/NI9157$(LIBEXT)
-endif
-
-ifdef MDSPLUS_DIR
-LIBRARIES_STATIC+=$(BUILD_DIR)/MDSWriter/MDSWriter$(LIBEXT)
-LIBRARIES_STATIC+=$(BUILD_DIR)/MDSReader/MDSReader$(LIBEXT)
-endif
-
-ifdef EPICS_BASE
-LIBRARIES_STATIC+=$(BUILD_DIR)/EPICSCA/EPICSCA$(LIBEXT)
-endif
-
-ifdef EPICSPVA
-LIBRARIES_STATIC+=$(BUILD_DIR)/EPICSPVA/EPICSPVADataSource$(LIBEXT)
-endif
-
-ifdef OPEN62541_INCLUDE
-LIBRARIES_STATIC+=$(BUILD_DIR)/OPCUADataSource/OPCUADataSource$(LIBEXT)
-endif
-
-# Inclusion of SDNPublisher DataSource is contingent to availability of SDN core library, etc.
-ifneq "$(or $(CODAC_VERSION),$(SDN_CORE_LIBRARY_DIR))" ""
-LIBRARIES_STATIC+=$(BUILD_DIR)/SDN/SDN$(LIBEXT)
-endif
-
-all: $(OBJS)  $(SUBPROJ)  \
-    $(BUILD_DIR)/DataSources$(LIBEXT) \
-    $(BUILD_DIR)/DataSources$(DLLEXT)
+all: $(OBJS)  $(SUBPROJ)  
 	echo  $(OBJS)
 
 include $(MAKEDEFAULTDIR)/MakeStdLibRules.$(TARGET)
