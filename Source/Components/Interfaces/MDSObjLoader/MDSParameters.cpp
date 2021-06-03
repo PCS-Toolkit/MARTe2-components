@@ -45,7 +45,9 @@ namespace MARTe
     MDSParameter::MDSParameter() : ObjParameter()
     {
         sourceParamOrientation = None;
-        targetDim = 0u;
+        targetDim = 0U;
+        startIdx = 0U;
+        stopIdx = 0U;
     }
 
     MDSParameter::~MDSParameter()
