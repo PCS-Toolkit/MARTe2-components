@@ -22,59 +22,7 @@
 #
 #############################################################
 
-SPB=MemoryGate.x \
-	SysLogger.x \
-	MDSObjLoader.x
 
-ifdef OPEN62541_LIB
-SPB+=OPCUA.x
-endif
+include Makefile.inc
 
-ifdef CODAC_ROOT
-SPB+=NI9157Device.x
-endif
-
-ifdef EFDA_MARTe_DIR
-SPB+=BaseLib2Wrapper.x
-endif
-
-ifdef EPICS_BASE
-SPB+=EPICS.x
-endif
-
-ifdef MDSPLUS_DIR
-SPB+= MDSStructuredDataI.x
-endif
-
-ifdef CODAC_ROOT
-## Only force EPICSPVA if CCS version is gt v6.1
-CCSGT61 = $(shell if [ `codac-version -v | sed 's/\(.*\)\.\(.*\)/\1\2/g'` -ge 61 ]; then echo 1; else echo 0; fi)
-ifeq "$(CCSGT61)" "1"
-EPICSPVA = "1"
-endif
-endif
-
-ifdef CODAC_ROOT
-SPB+=TcnTimeProvider.x
-endif
-
-ifdef EPICSPVA
-SPB+=EPICSPVA.x
-endif
-
-ifdef EPICS_PCAS
-SPB+=MARTeIOC.x
-endif
-
-PACKAGE=Components
-ROOT_DIR=../../..
-MAKEDEFAULTDIR=$(MARTe2_DIR)/MakeDefaults
-
-include $(MAKEDEFAULTDIR)/MakeStdLibDefs.$(TARGET)
-
-all: $(OBJS)  $(SUBPROJ) 
-	echo  $(OBJS)
-
-include $(MAKEDEFAULTDIR)/MakeStdLibRules.$(TARGET)
-
-
+LIBRARIES += -L$(MDSPLUS_DIR)/lib -lMdsObjectsCppShr
