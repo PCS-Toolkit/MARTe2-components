@@ -32,7 +32,8 @@ SPB = EpicsDataSource.x \
     RealTimeThreadAsyncBridge.x \
     RealTimeThreadSynchronisation.x \
     UARTDataSource.x \
-    UDP.x
+    UDP.x \
+    MDSObjWavegen.x 
 
 ROOT_DIR=../../..
 include ProfinetDataSource/Makefile.detect
