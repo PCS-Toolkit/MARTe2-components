@@ -232,7 +232,7 @@ bool MDSObjWavegen::Initialise(StructuredDataI & data)
             currentconnection = new MDSplus::Connection((char *)(server.Buffer()));
             currentconnection->openTree((char *)(tree.Buffer()), (int)shot);
         }
-        catch(MDSplus::MdsException ex)
+        catch(const MDSplus::MdsException &ex)
         {
             REPORT_ERROR(ErrorManagement::InitialisationError, "Error opening the tree: %s\n",ex.what());
             return false;

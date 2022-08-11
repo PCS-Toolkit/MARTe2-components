@@ -125,17 +125,20 @@ namespace MARTe
                             default:
                             {
                                 currenttree = NULL;
+				printf("Before connecting to %s\n", (char *)(ref->getServer().Buffer()));
                                 currentconnection = new MDSplus::Connection((char *)(ref->getServer().Buffer()));
                                 currentconnection->openTree((char *)(ref->getTree().Buffer()), (int)shottoopen);
                                 break;
                             }
                         }
                     }
-                    catch (MDSplus::MdsException ex)
+                    catch (const MDSplus::MdsException &ex)
                     {
                         REPORT_ERROR(ErrorManagement::InitialisationError, "Error opening the tree: %s\n", ex.what());
                         return false;
                     }
+
+		    printf("After connection\n");
 
                     // ... loop over all children of the connection, that are supposed to be MDSParameters
                     for (uint32 j = 0; j < ref->Size(); j++)
@@ -145,6 +148,7 @@ namespace MARTe
                         if (refPar.IsValid())
                         {
                             // Actualisation (data from MDSplus are copied into this MDSParameter)
+			    printf("Before actualization of %s\n", refPar->GetName());
                             status = refPar->Actualize(privatecdb, clienttype, currentconnection, currenttree, basename);
 
                             // Also insert an AnyObject copy of this parameter at the root level of this ReferenceContainer

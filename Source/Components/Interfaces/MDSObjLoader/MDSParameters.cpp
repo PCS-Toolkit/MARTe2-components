@@ -131,25 +131,29 @@ namespace MARTe
         {
             try
             {
+
+		printf("Accessing MDS node %s\n", expandedMDSPath.Buffer());    
                 MDSplus::Data *nodeData;
                 switch (clienttype)
                 {
                     case MDSClientType_Distributed:
                     {
-                        MDSplus::TreeNode *node = treeName->getNode(expandedMDSPath.Buffer());
+			MDSplus::TreeNode *node = treeName->getNode(expandedMDSPath.Buffer());
                         nodeData = node->getData();
                         break;
                     }
                     case MDSClientType_Thin:
                     default:
-                    {
+		    {                    
                         nodeData = conn->get(expandedMDSPath.Buffer());
-                        break;
+
                     }
                 }
 
                 // MDSplus C++ API are used to retrieve informations about the parameter
                 nodeData->getInfo(&MDSDataClass, &MDSDataType, &MDSDataByteSize, &MDSNumOfDims, &MDSDimArray, &MDSDataPtr);
+
+		printf("After getinfo, MDSDataType = %d, MDSDataByteSize = %d\n", MDSDataType, MDSDataByteSize);
 
                 ok = true;
             }
@@ -274,7 +278,8 @@ namespace MARTe
         // Allocate AnyType data buffer and copy data from MDSplus
         if (this->IsStaticDeclared() && ok)
         {
-            dataBuffer = HeapManager::Malloc(this->GetDataSize());
+            printf("Before Malloc(%d)\n", this->GetDataSize());
+	    dataBuffer = HeapManager::Malloc(this->GetDataSize());
             ok = (dataBuffer != NULL_PTR(void *));
 
             if (ok)
